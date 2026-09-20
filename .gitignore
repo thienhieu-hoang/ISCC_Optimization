@@ -1,0 +1,7 @@
+
+.*
+Thumbs.db
+desktop.ini
+~$*
+!.gitignore
+*.mat
