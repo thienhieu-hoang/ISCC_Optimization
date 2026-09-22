@@ -36,7 +36,10 @@ This letter recasts stochastic UL--DL edge inference on a SI-TNTN as an ISCC pro
 
 \section{System and Signal Models}
 \label{sec:model}
-Consider a square area with $M$ hovering UAVs (each with $L$ antennas and an onboard inference server), ground UEs, and ground jammers (Fig.~\ref{fig:sys}). UAVs are half-duplex, $M=M^{\tt ul}+M^{\tt dl}$. Bandwidth $B$ is reused over $K$ sub-channels of width $B_k=B/K$. Horizontal locations of UAVs, UEs, and jammers are independent 2D HPPPs $\Phi_0$, $\Phi_{\mathrm{UE}}$, $\Phi_{\mathrm{Q}}$ of intensities $\lambda_0$, $\lambda_{\mathrm{UE}}$, $\lambda_{\mathrm{Q}}$. Ground nodes sit on $z=z_{\min}$; UAV altitudes are drawn independently and uniformly from $[z_{\mathrm{uav}}^{\min},z_{\mathrm{uav}}^{\max}]$. UAV $m$, UE $n$, and jammer $q$ thus sit at $\vec{\ell}_m,\vec{\ell}_n,\vec{\ell}_q\in\mathbb{R}^3$. Nearest-UAV association $d_{n,m}=\Vert\vec{\ell}_m-\vec{\ell}_n\Vert_2$ induces Voronoi-like cells; the binary $\vec{A}^{\tt ul}$ then assigns a sub-channel, or local execution, inside the serving cell.
+Consider a square area with $M$ hovering UAVs (each with $L$ antennas and an onboard inference server), ground UEs, and ground jammers (Fig.~\ref{fig:sys}). UAVs are half-duplex, $M=M^{\tt ul}+M^{\tt dl}$. Bandwidth $B$ is reused over $K$ sub-channels of width $B_k=B/K$. Horizontal locations of UAVs, UEs, and jammers are independent 2D HPPPs $\Phi_0$, $\Phi_{\mathrm{UE}}$, $\Phi_{\mathrm{Q}}$ of intensities $\lambda_0$, $\lambda_{\mathrm{UE}}$, $\lambda_{\mathrm{Q}}$. Ground nodes sit on $z=z_{\min}$; UAV altitudes are drawn independently and uniformly from $[z_{\mathrm{uav}}^{\min},z_{\mathrm{uav}}^{\max}]$. UAV $m$, UE $n$, and jammer $q$ thus sit at $\vec{\ell}_m,\vec{\ell}_n,\vec{\ell}_q\in\mathbb{R}^3$. 
+{\color{blue}Nearest-UAV association assigns each UE $n$ to UAV $m_n=\arg\min_m \Vert\vec{\ell}_m-\vec{\ell}_n\Vert_2$}
+inducing Voronoi-like cells; 
+the binary $\vec{A}^{\tt ul}$ then assigns a sub-channel, or local execution, inside the serving cell.
 
 \begin{figure}[!t]
 \centering
@@ -83,7 +86,9 @@ UE $n$ splits its task: a fraction $\rho_n\in[0,1]$ is offloaded and $1-\rho_n$ 
 \mathsf{E}_n^{\tt ref}&=\mathsf{E}_n^{\tt sen}+\mathsf{E}_n^{\tt ext}+\kappa_n C_n^{\tt raw}(F_n^{\tt loc})^2 .
 \nonumber
 \end{align}
-{\color{blue}For UE $i$, sub-channel $k$, UAV $m$, denote $\mathsf{g}_i\triangleq\Vert\vec{h}_{i,k,m}\Vert^2$, $c_{n,i}\triangleq|\vec{h}_{n,k,m}^{\sf H}\vec{h}_{i,k,m}|^2$, $\mathcal{N}_m^{\tt ul}=\{n:m(n)=m\}$, $\mathcal{N}_k^{\tt sub}=\{i:a_{i,k}^{\tt ul}=1\}$, and weaker intra-cell co-channel UEs $\mathcal{W}_{n,k,m}=\{i\in(\mathcal{N}_m^{\tt ul}\cap\mathcal{N}_k^{\tt sub})\setminus\{n\}:\mathsf{g}_i\le\mathsf{g}_n\}$.}
+{\color{blue}For UE $i$, sub-channel $k$, UAV $m$, denote $\mathsf{g}_i\triangleq\Vert\vec{h}_{i,k,m}\Vert^2$, $c_{n,i}\triangleq|\vec{h}_{n,k,m}^{\sf H}\vec{h}_{i,k,m}|^2$, 
+$\mathcal{N}_m^{\tt ul}=\{n:m_n=m\}$,
+$\mathcal{N}_k^{\tt sub}=\{i:a_{i,k}^{\tt ul}=1\}$, and weaker intra-cell co-channel UEs $\mathcal{W}_{n,k,m}=\{i\in(\mathcal{N}_m^{\tt ul}\cap\mathcal{N}_k^{\tt sub})\setminus\{n\}:\mathsf{g}_i\le\mathsf{g}_n\}$.}
 The received vector at UL UAV $m$ on sub-channel $k$ is
 \begin{equation}
 \begin{aligned}
