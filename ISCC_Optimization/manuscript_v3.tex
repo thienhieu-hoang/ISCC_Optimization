@@ -110,7 +110,7 @@ Reliable SIC requires a decoding margin $\epsilon_m^{\tt th}\ge1$,
 \textstyle p_n\mathsf{g}_n\big/\sum_{i\in\mathcal{W}_{n,k,m}}p_i\mathsf{g}_i\ge\epsilon_m^{\tt th}.
 \label{eq:sic}
 \end{equation}
-If $\mathcal{W}_{n,k,m}=\emptyset$ (the cell-head), the constraint is vacuous.
+{\color{blue}If $\mathcal{W}_{n,k,m}=\emptyset$ (the last-decoded UE in a cell), the constraint is vacuous.}
 The transmission rate is $R_{n,k,m}=B_k\log_2(1+\gamma_{n,k,m})$, and $a_n^{\tt ul}=\sum_k a_{n,k}^{\tt ul}$ with $\rho_n\le a_n^{\tt ul}$ so that a UE without a sub-channel computes locally. The local branch and the offload branch run in parallel, so with $R_n\triangleq\sum_{m,k}a_{n,k}^{\tt ul}R_{n,k,m}$ and ignoring result-feedback payload,
 \begin{align}
 \mathsf{T}_n&=\mathsf{T}_n^{\tt sen}+\mathsf{T}_n^{\tt ext}+\chi_n\Delta_n,
@@ -188,7 +188,7 @@ where
 {\big[(1-\rho_n)C_n^{\tt raw}/F_n^{\tt loc}-\rho_n D_n^{\tt raw}/R_n\big]_+}
 \label{eq:Fbar}
 \end{equation}
-is the rate beyond which the offload branch of \eqref{eq:branches} falls below the local branch (with $\bar F_{nm}=\infty$ when the bracket is nonpositive), and $\mu_m>0$ is the unique water level giving $\sum_{n\in\mathcal{N}_m^{\tt ul}}F_{nm}^\star=F_m^{\tt max}$, or $\mu_m\to0$ if $\sum_n\bar F_{nm}\le F_m^{\tt max}$.
+is the {\color{blue}computation  rate} beyond which the offload branch of \eqref{eq:branches} falls below the local branch (with $\bar F_{nm}=\infty$ when the bracket is nonpositive), and $\mu_m>0$ is the unique water level giving $\sum_{n\in\mathcal{N}_m^{\tt ul}}F_{nm}^\star=F_m^{\tt max}$, or $\mu_m\to0$ if $\sum_n\bar F_{nm}\le F_m^{\tt max}$.
 \end{proposition}
 \begin{IEEEproof}
 $\Delta_n^{\tt ofl}$ is convex in $F_{nm}$ and $\Delta_n^{\tt loc}$ constant, so $\Delta_n$ is convex and $\mathbb{U}_n^{\tt ul}$ concave by \eqref{eq:Tn}, \eqref{eq:Uul}; $\Theta_n,\Lambda_n$ are $\vec{F}$-free. Where $\Delta_n^{\tt ofl}$ is active, $\partial\mathbb{U}_n^{\tt ul}/\partial F_{nm}=(\beta_n^{\tt t}/\mathsf{T}_n^{\tt ref})\chi_n\rho_n C_n^{\tt raw}/F_{nm}^2>0$, so the budget binds; stationarity of $\sum_n\mathbb{U}_n^{\tt ul}+\mu_m(F_m^{\tt max}-\sum_n F_{nm})$ yields $F_{nm}\propto\sqrt{\beta_n^{\tt t}\rho_n\chi_n C_n^{\tt raw}/\mathsf{T}_n^{\tt ref}}$. Beyond $\bar F_{nm}$ the local branch is active and the derivative vanishes, giving the clip. Monotonicity of $\sum_n F_{nm}^\star$ in $\mu_m^{-1}$ gives uniqueness.
@@ -258,19 +258,21 @@ For each offloading UE, $w_n(p)=(\eta_n+\theta_n p)/[B_k\log_2(1+\bar h_n p)]$ i
 which is found by bisection in $\mathcal{O}(\log(p_n^{\tt max}/\varepsilon))$ steps.
 \end{lemma}
 \begin{IEEEproof}
-The sign of $w_n'(p)$ coincides with $\phi_n(p)$. Moreover $\phi_n'(p)<0$ on $(0,\infty)$, so $\phi_n$ has at most one zero and $w_n$ decreases then increases.
+The sign of $w_n'(p)$ coincides with $\phi_n(p)$. 
+{\color{blue}Moreover $\phi_n'(p)>0$ on $(0,\infty)$, so $\phi_n$ is strictly monotonically increasing, making $w_n$ strictly quasiconvex.}
 \end{IEEEproof}
 
-Pruning must act before $(\vec{\rho},\vec{\chi})$ are known, and both the compute and the power cost scale with $\chi_n\rho_n$, so the conventional atomic-task bound is no longer valid. Instead, for each offloading UE replace $R_n$ by the interference-free rate $\bar R_n=B_k\log_2(1+\bar h_np_n^{\tt max})$, $F_{nm}$ by $F_m^{\tt max}$, and the offload energy $p_nD_n^{\tt raw}/(\xi_nR_n)$ by its floor $D_n^{\tt raw}\ln2/(\xi_nB_k\bar h_n)$, which follows from $\log_2(1+x)\le x/\ln2$. Each replacement lowers $\Delta_n$ and $\Theta_n$ pointwise, so $\bar\Omega_n(\rho_n)$ lower-bounds $\Omega_n(\rho_n)$ for every $(\vec{p},\vec{F})$. With $\bar u_n$ the maximum of $\mathbb{U}_n^{\tt ul}$ under $\bar\Omega_n$, obtained exactly by Propositions~\ref{prop:rho}--\ref{prop:chi}, let
+Pruning must act before $(\vec{\rho},\vec{\chi})$ are known, and both the compute and the power cost scale with $\chi_n\rho_n$, so the conventional atomic-task bound is no longer valid. Instead, for each offloading UE replace $R_n$ by the interference-free rate $\bar R_n=B_k\log_2(1+\bar h_np_n^{\tt max})$, $F_{nm}$ by $F_m^{\tt max}$, and the offload energy $p_nD_n^{\tt raw}/(\xi_nR_n)$ by its floor $D_n^{\tt raw}\ln2/(\xi_nB_k\bar h_n)$, which follows from $\log_2(1+x)\le x/\ln2$. Each replacement lowers $\Delta_n$ and $\Theta_n$ pointwise, so $\bar\Omega_n(\rho_n)$ lower-bounds $\Omega_n(\rho_n)$ for every $(\vec{p},\vec{F})$. 
+With $\bar u_n$ the maximum of $\mathbb{U}_n^{\tt ul}$ under $\bar\Omega_n$, obtained exactly by Propositions~\ref{prop:rho}--\ref{prop:chi}, {\color{blue}leveraging the interference-free decoupling in \eqref{eq:Wtil} yields the upper-bound filter}
 \begin{equation}
 \mathbb{F}(\vec{A})=\sum_{n}\bar u_n(\vec{A}^{\tt ul})+\mathbb{U}^{\tt dl}_{\mathrm{ub}}(\vec{A}^{\tt dl}),
 \label{eq:Fbound}
 \end{equation}
 with $\mathbb{U}^{\tt dl}_{\mathrm{ub}}$ an interference-free full-budget upper bound on $\mathbb{U}^{\tt dl}$. Write $\mathbb{U}^\star$ for the incumbent.
 
-\begin{lemma}[Pruning]\label{lem:prune}
-Fix $\vec{A}$. If $\mathbb{F}(\vec{A})\le\mathbb{U}^\star$, then no $(\vec{p},\vec{F},\vec{\rho},\vec{\chi})$ makes $\vec{A}$ improve $\mathbb{U}^\star$.
-\end{lemma}
+{\color{blue}\begin{lemma}[Pruning]\label{lem:prune}
+Fix $\vec{A}$. If $\mathbb{F}(\vec{A})\le\mathbb{U}^\star$, then no $(\vec{p},\vec{F},\vec{\rho},\vec{\chi})$ can achieve a utility strictly greater than $\mathbb{U}^\star$.
+\end{lemma}}
 \begin{IEEEproof}
 $\mathbb{U}_n^{\tt ul}\le\bar u_n$ for every $(\vec{p},\vec{F},\rho_n,\chi_n)$ since $\Omega_n\ge\bar\Omega_n$ enters with a negative sign, and $\mathbb{U}^{\tt dl}\le\mathbb{U}^{\tt dl}_{\mathrm{ub}}$; hence $\mathbb{U}\le\mathbb{F}$.
 \end{IEEEproof}
