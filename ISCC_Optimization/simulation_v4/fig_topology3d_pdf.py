@@ -35,12 +35,14 @@ def main() -> None:
     ap.add_argument("--jammers", type=int, default=3)
     ap.add_argument("--elev", type=float, default=20.0)
     ap.add_argument("--azim", type=float, default=-58.0)
+    ap.add_argument("--pad", type=float, default=0.04, help="padding around figure in inches")
     args = ap.parse_args()
 
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     from matplotlib.lines import Line2D
+    from matplotlib.transforms import Bbox
 
     rng = np.random.default_rng(args.seed)
     params = SystemParams()
@@ -107,7 +109,7 @@ def main() -> None:
 
     ax.set_xlabel("$x$ [m]", labelpad=-4)
     ax.set_ylabel("$y$ [m]", labelpad=-4)
-    ax.set_zlabel("altitude [m]", labelpad=-6)
+    ax.set_zlabel("Altitude [m]", labelpad=-6)
     ax.set_xlim(-side, side); ax.set_ylim(-side, side)
     ax.set_zlim(0, params.z_uav_max * 1.15)
     ax.set_box_aspect((1, 1, 0.34))
@@ -130,9 +132,28 @@ def main() -> None:
                ncol=3, fontsize=6.8, frameon=False, columnspacing=1.3,
                labelspacing=0.25, handletextpad=0.5, borderaxespad=0.0)
 
+    # Compute tight bounding box enclosing all content (legend, 3D plot, labels)
+    fig.canvas.draw()
+    rgba = np.asarray(fig.canvas.buffer_rgba())
+    non_bg = (rgba[:, :, :3] < 250).any(axis=2)
+    coords = np.argwhere(non_bg)
+    if coords.size:
+        y0, x0 = coords.min(axis=0)
+        y1, x1 = coords.max(axis=0)
+        dpi = fig.dpi
+        h_px, w_px = rgba.shape[:2]
+        pad = args.pad
+        x_min = max(0.0, x0 / dpi - pad)
+        x_max = min(w_px / dpi, (x1 + 1) / dpi + pad)
+        y_min = max(0.0, (h_px - (y1 + 1)) / dpi - pad)
+        y_max = min(h_px / dpi, (h_px - y0) / dpi + pad)
+        tight_bbox = Bbox([[x_min, y_min], [x_max, y_max]])
+    else:
+        tight_bbox = "tight"
+
     out_target = args.out or FIGURES
     out = out_target if out_target.suffix.lower() == ".pdf" else out_target / "topology3d.pdf"
-    fig.savefig(out, dpi=300)
+    fig.savefig(out, dpi=300, bbox_inches=tight_bbox)
     print("UAV altitudes [m]:", np.round(topo.sbs_pos[:, 2], 1).tolist())
     print(f"UL UAVs {ul_cells.tolist()}  DL UAVs {dl_cells.tolist()}  "
           f"UL UEs {ul_ues.size}  DL UEs {dl_ues.size}  jammers {topo.n_jammer}")
