@@ -13,15 +13,15 @@ the base miniconda Python has numpy and matplotlib.)
 
 ## What changed from v1
 
-| Paper | Code |
-|---|---|
-| Sensed task, eq. (task)–(chimin) | `SystemModel._build_tasks`, `accuracy`, `chi_min`, `admissible` |
-| Partial offloading, eqs. (Tn)–(Theta) | `SystemModel._branches` |
-| Utility with accuracy, eq. (Uul) | `SystemModel.ul_utilities` |
-| Prop. 1, clipped water-filling | `SystemModel.smca(ul_sub, rho, chi, rates)` |
-| Props. 2–3, split and retention | `SystemModel.optimal_split` (jointly optimal, see docstring) |
-| Pruning bound, eq. (Fbound) | `SystemModel.ul_utility_upper_bound` |
-| Algorithm 1 | `HybridSolver.evaluate`, then `SystemModel.iscc_allocate` |
+| Paper                                 | Code                                                            |
+| ------------------------------------- | --------------------------------------------------------------- |
+| Sensed task, eq. (task)–(chimin)      | `SystemModel._build_tasks`, `accuracy`, `chi_min`, `admissible` |
+| Partial offloading, eqs. (Tn)–(Theta) | `SystemModel._branches`                                         |
+| Utility with accuracy, eq. (Uul)      | `SystemModel.ul_utilities`                                      |
+| Prop. 1, clipped water-filling        | `SystemModel.smca(ul_sub, rho, chi, rates)`                     |
+| Props. 2–3, split and retention       | `SystemModel.optimal_split` (jointly optimal, see docstring)    |
+| Pruning bound, eq. (Fbound)           | `SystemModel.ul_utility_upper_bound`                            |
+| Algorithm 1                           | `HybridSolver.evaluate`, then `SystemModel.iscc_allocate`       |
 
 New sweeps (`scripts/run_sweep.py`):
 

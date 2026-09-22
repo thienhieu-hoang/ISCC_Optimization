@@ -5,3 +5,36 @@ desktop.ini
 ~$*
 !.gitignore
 *.mat
+
+## Core LaTeX auxiliary & intermediate files
+*.aux
+*.bbl
+*.blg
+*.log
+*.out
+*.toc
+*.lof
+*.lot
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+*.synctex(busy)
+
+## Index & Nomenclature
+*.idx
+*.ind
+*.ilg
+*.nlo
+*.nls
+
+## Beamer / TikZ external cache
+*.nav
+*.snm
+*.vrb
+
+## Editor & Build artifacts
+*.bak
+*.sav
+*.bcf
+*.run.xml
+
