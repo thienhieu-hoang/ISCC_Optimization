@@ -30,9 +30,13 @@ def main() -> None:
           f"null: {topo.null_cells.tolist()}   jammers: {topo.n_jammer}")
     plotting = load_plotting()
     if plotting is not None:
-        out = (args.out or FIGURES) / "topology_snapshot.png"
-        plotting.plot_topology(topo, out)
-        print(f"saved {out}")
+        out_target = args.out or FIGURES
+        if out_target.suffix.lower() in {".pdf", ".png"}:
+            out = out_target
+        else:
+            out = out_target / "topology_snapshot.pdf"
+        saved = plotting.plot_topology(topo, out)
+        print(f"saved {saved}")
 
 
 if __name__ == "__main__":

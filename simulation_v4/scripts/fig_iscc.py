@@ -49,9 +49,9 @@ def main() -> None:
         ax.grid(True, alpha=0.35)
         ax.legend(loc="lower right", fontsize=9)
         fig.tight_layout()
-        fig.savefig(out / "accuracy_tradeoff.png", dpi=200)
+        fig.savefig(out / "accuracy_tradeoff.pdf", dpi=200, bbox_inches="tight")
         plt.close(fig)
-        print("saved", out / "accuracy_tradeoff.png")
+        print("saved", out / "accuracy_tradeoff.pdf")
 
     snr_path = RESULTS / "sensing_snr.json"
     if snr_path.exists():
@@ -79,9 +79,9 @@ def main() -> None:
         ax.grid(True, alpha=0.35)
         ax.legend(loc="center right", fontsize=9)
         fig.tight_layout()
-        fig.savefig(out / "retention_vs_snr.png", dpi=200)
+        fig.savefig(out / "retention_vs_snr.pdf", dpi=200, bbox_inches="tight")
         plt.close(fig)
-        print("saved", out / "retention_vs_snr.png", f"(chi_min=1 at {g_star:.2f} dB)")
+        print("saved", out / "retention_vs_snr.pdf", f"(chi_min=1 at {g_star:.2f} dB)")
 
 
 if __name__ == "__main__":

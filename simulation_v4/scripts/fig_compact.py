@@ -32,10 +32,11 @@ def main() -> None:
     params = SystemParams()
 
     def save(fig, name):
+        pdf_name = Path(name).with_suffix(".pdf").name
         fig.tight_layout(pad=0.25)
-        fig.savefig(out / name, dpi=400)
+        fig.savefig(out / pdf_name, dpi=400, bbox_inches="tight")
         plt.close(fig)
-        print("saved", out / name)
+        print("saved", out / pdf_name)
 
     # Fig. 4(a): accuracy--delay frontier
     acc_path = RESULTS / "accuracy_weight.json"
@@ -55,7 +56,7 @@ def main() -> None:
         ax.set_ylabel("accuracy $\\Lambda_n$")
         ax.grid(True, alpha=0.35)
         ax.legend(loc="lower right", handlelength=1.6, borderpad=0.3)
-        save(fig, "accuracy_tradeoff.png")
+        save(fig, "accuracy_tradeoff.pdf")
 
     # Fig. 4(b): retention and offloading vs sensing SNR
     snr_path = RESULTS / "sensing_snr.json"
@@ -79,7 +80,7 @@ def main() -> None:
         ax.set_ylabel("fraction")
         ax.grid(True, alpha=0.35)
         ax.legend(loc="center right", handlelength=1.6, borderpad=0.3)
-        save(fig, "retention_vs_snr.png")
+        save(fig, "retention_vs_snr.pdf")
 
 
 if __name__ == "__main__":

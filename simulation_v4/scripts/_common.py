@@ -54,4 +54,4 @@ def outputs(args: argparse.Namespace, name: str) -> tuple[Path, Path]:
     fig = (root / "figures") if args.out is None else root
     res.mkdir(parents=True, exist_ok=True)
     fig.mkdir(parents=True, exist_ok=True)
-    return res / f"{name}.json", fig / f"{name}.png"
+    return res / f"{name}.json", fig / f"{name}.pdf"

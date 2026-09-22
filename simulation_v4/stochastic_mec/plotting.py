@@ -22,6 +22,16 @@ def _style(ax, xlabel: str, ylabel: str) -> None:
     ax.legend(loc="best", fontsize=9)
 
 
+def _save_and_close(fig, path: str | Path, dpi: int = 200) -> Path:
+    p = Path(path)
+    if p.suffix.lower() in {"", ".png"}:
+        p = p.with_suffix(".pdf")
+    p.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(p, dpi=dpi, bbox_inches="tight")
+    plt.close(fig)
+    return p
+
+
 def plot_sweep(
     result,
     metric: str,
@@ -40,11 +50,7 @@ def plot_sweep(
     if title:
         ax.set_title(title)
     fig.tight_layout()
-    path = Path(path)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(path, dpi=200)
-    plt.close(fig)
-    return path
+    return _save_and_close(fig, path)
 
 
 def plot_curves(
@@ -60,11 +66,7 @@ def plot_curves(
                 marker=MARKERS[i % len(MARKERS)], markevery=max(1, y.size // 15), label=label)
     _style(ax, xlabel, ylabel)
     fig.tight_layout()
-    path = Path(path)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(path, dpi=200)
-    plt.close(fig)
-    return path
+    return _save_and_close(fig, path)
 
 
 def plot_topology(topo: Topology, path: str | Path, side: float = 500.0) -> Path:
@@ -100,11 +102,7 @@ def plot_topology(topo: Topology, path: str | Path, side: float = 500.0) -> Path
     ax.set_aspect("equal")
     _style(ax, r"$x$ [m]", r"$y$ [m]")
     fig.tight_layout()
-    path = Path(path)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(path, dpi=200)
-    plt.close(fig)
-    return path
+    return _save_and_close(fig, path)
 
 
 def plot_frontier(
@@ -127,11 +125,7 @@ def plot_frontier(
                             textcoords="offset points", xytext=(6, -12), fontsize=8)
     _style(ax, xlabel, ylabel)
     fig.tight_layout()
-    path = Path(path)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(path, dpi=200)
-    plt.close(fig)
-    return path
+    return _save_and_close(fig, path)
 
 
 def plot_dual(
@@ -163,8 +157,4 @@ def plot_dual(
     h1, l1 = ax2.get_legend_handles_labels()
     ax.legend(h0 + h1, l0 + l1, loc="best", fontsize=9)
     fig.tight_layout()
-    path = Path(path)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(path, dpi=200)
-    plt.close(fig)
-    return path
+    return _save_and_close(fig, path)

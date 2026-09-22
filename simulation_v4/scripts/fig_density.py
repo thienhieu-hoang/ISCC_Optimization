@@ -14,16 +14,16 @@ RENAME = {"ARJOA": "force-all-offload"}
 
 def main() -> None:
     out = base_parser(__doc__).parse_args().out or FIGURES
-    for src, name in [("ue_density.json", "ue_density_su.png"),
-                      ("uav_density.json", "uav_density_su.png")]:
+    for src, name in [("ue_density.json", "ue_density_su.pdf"),
+                      ("uav_density.json", "uav_density_su.pdf")]:
         fpath = RESULTS / src
         if not fpath.exists():
             continue
         d = json.loads(fpath.read_text())
         data = {RENAME.get(k, k): v for k, v in d["data"].items()}
-        plotting.plot_sweep(SweepResult(d["x_label"], d["x"], data), "utility",
-                            "System utility", out / name)
-        print("saved", out / name, "series:", list(data))
+        saved = plotting.plot_sweep(SweepResult(d["x_label"], d["x"], data), "utility",
+                                    "System utility", out / name)
+        print("saved", saved, "series:", list(data))
 
 
 if __name__ == "__main__":
