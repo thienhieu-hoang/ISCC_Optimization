@@ -40,7 +40,7 @@ Consider a square area with $M$ hovering UAVs (each with $L$ antennas and an onb
 
 \begin{figure}[!t]
 \centering
-\includegraphics[width=\linewidth]{figures/topology3d.png}
+\includegraphics[width=\linewidth]{figures/topology3d_wGround.pdf}
 \caption{One HPPP realisation of the SI-TNTN drawn by the simulator: UAVs hover at their sampled altitudes over ground UEs and jammers, with G2A offloading, A2G broadcasting, and jamming on both directions.}
 \label{fig:sys}
 \end{figure}
@@ -133,12 +133,12 @@ Setting $\chi_n=1$ and $\rho_n=a_n^{\tt ul}$ recovers the conventional atomic-ta
 
 \subsection{DL Broadcasting and ZFBF}
 \label{sec:dl}
-DL UAV $m'$ uses one sub-channel, $\sum_k a_{m',k}^{\tt dl}=1$, and ZFBF precoder $\vec{W}_{m',k}=\vec{H}_{m',k}^{\tt dl}[(\vec{H}_{m',k}^{\tt dl})^{\sf H}\vec{H}_{m',k}^{\tt dl}]^{\dagger}$, the Moore--Penrose inverse {\color{green}(where column $\vec{w}_{m',n'}$ is the beamformer for UE $n'$)}, which nulls intra-cell interference when $L\ge|\mathcal{N}_{m'}^{\tt dl}|$ and is regularized otherwise. The SIJNR of UE $n'$ is
+DL UAV $m'$ uses one sub-channel, $\sum_k a_{m',k}^{\tt dl}=1$, and ZFBF precoder $\vec{W}_{m',k}=\vec{H}_{m',k}^{\tt dl}[(\vec{H}_{m',k}^{\tt dl})^{\sf H}\vec{H}_{m',k}^{\tt dl}]^{\dagger}$, the Moore--Penrose inverse {\color{blue}(where column $\vec{w}_{m',n'}$ is the beamformer for UE $n'$)}, which nulls intra-cell interference when $L\ge|\mathcal{N}_{m'}^{\tt dl}|$ and is regularized otherwise. The SIJNR of UE $n'$ is
 \begin{equation}
 \textstyle\gamma_{m',k,n'}^{\tt dl}=q_{m',n'}/(\mathcal{I}_{n'}^{\tt inter}+\mathcal{I}_{n'}^{\tt CCI}+\mathcal{J}_{n'}^{\tt dl}+\sigma_{k,n'}^2),
 \label{eq:dl_sijnr}
 \end{equation}
-where {\color{green}$q_{m',n'}$ is the DL transmit power allocated to UE $n'$}, $\mathcal{I}_{n'}^{\tt inter}=\sum_{j\neq m'}\sum_{i\in\mathcal{N}_j^{\tt dl}}q_{j,i}|\vec{h}_{n',k,j}^{\sf H}{\color{green}\vec{w}_{j,i}}|^2$ is inter-cell DL interference,
+where {\color{blue}$q_{m',n'}$ is the DL transmit power allocated to UE $n'$}, $\mathcal{I}_{n'}^{\tt inter}=\sum_{j\neq m'}\sum_{i\in\mathcal{N}_j^{\tt dl}}q_{j,i}|\vec{h}_{n',k,j}^{\sf H}{\color{blue}\vec{w}_{j,i}}|^2$ is inter-cell DL interference,
 $\mathcal{I}_{n'}^{\tt CCI}=\sum_{i\in\mathcal{N}_k^{\tt sub}}p_i|\ell_{i,k,n'}|^2$ is UL-to-DL co-channel interference with G2G channel $\ell_{i,k,n'}$,
 $\mathcal{J}_{n'}^{\tt dl}=\sum_{q}a_{q,k}|h_{q,k,n'}|^2 p_q$ is jamming, and
 $\sigma_{k,n'}^2=B_k N_0$ is thermal noise.
@@ -146,7 +146,7 @@ Then $R_{n'}^{\tt dl}=\sum_{m',k}a_{m',k}^{\tt dl}B_k\log_2(1+\gamma_{m',k,n'}^{
 
 \section{Problem and Solution}
 \label{sec:sol}
-{\color{green}The UL utility is the weighted sum of normalized delay, energy, and accuracy gains:}
+{\color{blue}The UL utility is the weighted sum of normalized delay, energy, and accuracy gains:}
 \begin{equation}
 \mathbb{U}_n^{\tt ul}
 =\beta_n^{\tt t}\frac{\mathsf{T}_n^{\tt ref}-\mathsf{T}_n}{\mathsf{T}_n^{\tt ref}}
@@ -154,7 +154,7 @@ Then $R_{n'}^{\tt dl}=\sum_{m',k}a_{m',k}^{\tt dl}B_k\log_2(1+\gamma_{m',k,n'}^{
 +\beta_n^{\tt a}\frac{\Lambda_n-\Lambda^{\tt th}}{1-\Lambda^{\tt th}},
 \label{eq:Uul}
 \end{equation}
-with $\beta_n^{\tt t}+\beta_n^{\tt e}+\beta_n^{\tt a}=1$, and {\color{green}$\Lambda^{\tt th} \in (0, 1)$ is the minimum required inference accuracy threshold.}
+with $\beta_n^{\tt t}+\beta_n^{\tt e}+\beta_n^{\tt a}=1$, and {\color{blue}$\Lambda^{\tt th} \in (0, 1)$ is the minimum required inference accuracy threshold.}
 The DL utility is $\mathbb{U}_{n'}^{\tt dl}=R_{n'}^{\tt dl}/R_{\tt const}$ with $R_{\tt const}$ a reference rate that puts both utilities on one scale. The snapshot objective is $\mathbb{U}=\sum_{n\in\mathcal{N}^{\tt ul}}\mathbb{U}_n^{\tt ul}+\sum_{n'\in\mathcal{N}^{\tt dl}}\mathbb{U}_{n'}^{\tt dl}$. The HPPP-averaged utility is
 \begin{equation}
 \Upsilon_{\tt sys}
@@ -169,7 +169,7 @@ Writing $\vec{\Pi}\triangleq(\vec{A}^{\tt ul},\vec{A}^{\tt dl},\vec{p},\vec{F},\
 &0\le p_n\le p_n^{\tt max},\textstyle\sum_{n\in\mathcal{N}_m^{\tt ul}}F_{nm}\le F_m^{\tt max},\label{eq:c-pf}\\
 &0\le\rho_n\le a_n^{\tt ul},\chi_n^{\tt min}\le\chi_n\le1,\label{eq:c-rc}\\
 &\textstyle\sum_k a_{m',k}^{\tt dl}=1,\textstyle\sum_{n'}q_{m',n'}\Vert\vec{w}_{m',n'}\Vert^2\le P_{m'}^{\tt max},\label{eq:c-dl}\\
-&{\color{green}q_{m',n'} \ge 0}, \gamma_{m',k,n'}^{\tt dl}\ge\gamma_{\tt th},\eqref{eq:sic}. \label{eq:c-sic}
+&{\color{blue}q_{m',n'} \ge 0}, \gamma_{m',k,n'}^{\tt dl}\ge\gamma_{\tt th},\eqref{eq:sic}. \label{eq:c-sic}
 \end{align}
 \end{subequations}
 Constraint \eqref{eq:c-rc} is the only structural addition over the atomic-task formulation, and it absorbs the accuracy constraint $\Lambda_n\ge\Lambda^{\tt th}$ through \eqref{eq:chimin}. Problem \eqref{eq:minlp} inherits NP-hardness from the atomic-task MINLP \cite{Hoang_TCOM_2024}. We prune associations by Lemma~\ref{lem:prune}, run penalty-augmented power control at the atomic split $(\rho_n,\chi_n)=(a_n^{\tt ul},1)$, and then block-coordinate $\vec{F}$ with $(\vec{\rho},\vec{\chi})$.
@@ -286,7 +286,7 @@ The remaining continuous problems use penalty-augmented search. For UL power,
 \end{equation}
 where $g_{n,k}^{\mathrm{sic}}$ is the slack of \eqref{eq:sic}. For the DL powers $\vec{q}=\{q_{m',n'}\}$, we maximize $\mathbb{U}^{\tt dl}$ minus squared slacks of \eqref{eq:c-dl}. Both use WOA \cite{mirjalili2016whale}, IWOA (WOA with adaptive population resizing) \cite{Hoang_TCOM_2024}, or PSO. Binary matching uses BWOA \cite{kumar2020binary}: a whale position $x\in\mathbb{R}$ maps by $\sigma(x)=(1+e^{-\tau x})^{-1}$ to $a=\mathbf{1}\{\mathrm{rand}<\sigma(x)\}$.
 
-The {\color{green}inner power control} costs $\mathcal{O}(I_1 S_1 N^{\tt ul}K)$ per association that survives Lemma~\ref{lem:prune}; BWOA over $\vec{A}$ costs $\mathcal{O}(I_3 S_3 K(N^{\tt ul}+M^{\tt dl}))$ plus the surviving inner solves. The ISCC variables add only $\mathcal{O}(N^{\tt ul})$ per inner iteration (a few block-coordinate rounds of Propositions~\ref{prop:F}--\ref{prop:chi}), which is dominated by the $\mathcal{O}(I_1 S_1 N^{\tt ul}K)$ power search, so the overall order is unchanged from the atomic-task formulation. Exhaustive matching enumerates $(K+1)^{N^{\tt ul}}K^{M^{\tt dl}}$ associations.
+The {\color{blue}inner power control} costs $\mathcal{O}(I_1 S_1 N^{\tt ul}K)$ per association that survives Lemma~\ref{lem:prune}; BWOA over $\vec{A}$ costs $\mathcal{O}(I_3 S_3 K(N^{\tt ul}+M^{\tt dl}))$ plus the surviving inner solves. The ISCC variables add only $\mathcal{O}(N^{\tt ul})$ per inner iteration (a few block-coordinate rounds of Propositions~\ref{prop:F}--\ref{prop:chi}), which is dominated by the $\mathcal{O}(I_1 S_1 N^{\tt ul}K)$ power search, so the overall order is unchanged from the atomic-task formulation. Exhaustive matching enumerates $(K+1)^{N^{\tt ul}}K^{M^{\tt dl}}$ associations.
 
 \begin{algorithm}[!t]
 \DontPrintSemicolon
