@@ -1,5 +1,0 @@
-# Core (required)
-numpy>=1.22
-
-# Figures (optional -- the simulations run and save their JSON results without it)
-matplotlib>=3.5
