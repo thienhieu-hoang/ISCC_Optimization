@@ -22,6 +22,50 @@ class _InnerTF:
     pruned: bool = False
 
 
+def _repair_valid(assoc_np: np.ndarray, n_ul: int, m_dl: int, k: int, rng: np.random.Generator) -> np.ndarray:
+    """Ensure every row satisfies association constraints (UL: <=1, DL: ==1)."""
+    repaired = assoc_np.copy()
+    for row in range(n_ul):
+        chans = np.flatnonzero(repaired[row, :])
+        if chans.size > 1:
+            repaired[row, :] = 0
+            repaired[row, int(rng.choice(chans))] = 1
+    for m_idx in range(m_dl):
+        row = n_ul + m_idx
+        chans = np.flatnonzero(repaired[row, :])
+        if chans.size != 1:
+            repaired[row, :] = 0
+            repaired[row, int(rng.choice(chans)) if chans.size > 1 else int(rng.integers(k))] = 1
+    return repaired
+
+
+def _perturb_valid(assoc_np: np.ndarray, n_ul: int, m_dl: int, k: int, rng: np.random.Generator) -> np.ndarray:
+    """Make a valid 1-step move: reassign 1 random UE or DL UAV to a different subchannel."""
+    new_assoc = _repair_valid(assoc_np, n_ul, m_dl, k, rng)
+    rows = n_ul + m_dl
+    if rows == 0 or k == 0:
+        return new_assoc
+
+    row = int(rng.integers(rows))
+    if row < n_ul:
+        current_chans = np.flatnonzero(new_assoc[row, :])
+        curr = int(current_chans[0]) if current_chans.size > 0 else -1
+        choices = [c for c in range(-1, k) if c != curr]
+        choice = int(rng.choice(choices))
+        new_assoc[row, :] = 0
+        if choice >= 0:
+            new_assoc[row, choice] = 1
+    else:
+        current_chans = np.flatnonzero(new_assoc[row, :])
+        curr = int(current_chans[0]) if current_chans.size > 0 else -1
+        choices = [c for c in range(k) if c != curr] if k > 1 else [0]
+        choice = int(rng.choice(choices))
+        new_assoc[row, :] = 0
+        new_assoc[row, choice] = 1
+
+    return new_assoc
+
+
 class HybridSolverTF:
     """Hybrid <TPC>-BWOA solver accelerated with TensorFlow."""
 
@@ -40,6 +84,8 @@ class HybridSolverTF:
         self.tpc = make_tpc_tf(tpc, self.algo)
         self.scheme = scheme if isinstance(scheme, Scheme) else make_scheme(scheme, model.n_ul, rng)
         self.n_inner_calls = 0
+        self.eval_cache: dict[bytes, _InnerTF] = {}
+        self.n_cache_hits = 0
 
     # ------------------------------------------------------------------ #
     # Inner Power Control Problems (Batched Swarm)
@@ -129,6 +175,9 @@ class HybridSolverTF:
         ul_sub, dl_sub = m.decode_tf(assoc)
         penalty = float(m.association_penalty_tf(assoc)) + self.scheme.penalty(assoc.numpy(), m.n_ul)
 
+        if penalty > 0:
+            return _InnerTF(-penalty, np.full(m.n_ul, m.p.p_min, dtype=np.float32), np.zeros(m.n_dl, dtype=np.float32))
+
         self.n_inner_calls += 1
 
         xi_ref = m.cochannel_at_sbs_tf(dl_sub, m.equal_split_dl_power_tf(dl_sub))
@@ -153,6 +202,12 @@ class HybridSolverTF:
             return SolutionTF(0.0, np.zeros((0, k), dtype=np.int8), np.zeros(0),
                               np.zeros(0), np.zeros(0), np.zeros(0))
 
+        self.eval_cache.clear()
+        self.n_cache_hits = 0
+        self.n_flips = 0
+        use_cache = getattr(cfg, "enable_cache", True)
+        max_retries = getattr(cfg, "cache_max_retries", 10)
+
         pop_np = self.scheme.seed(m.assoc_shape, m.n_ul, m.m_dl, rng, cfg.n_agents_bwoa).astype(np.float32)
         pop = tf.constant(pop_np, dtype=tf.float32)
 
@@ -162,13 +217,39 @@ class HybridSolverTF:
         curve, stalled = [], 0
 
         for it in range(cfg.max_iter_bwoa):
+            new_pop_np = pop.numpy().astype(np.int8)
             for s in range(pop.shape[0]):
-                assoc_s = pop[s]
-                inner = self.evaluate(assoc_s)
+                assoc_s_np = _repair_valid(new_pop_np[s], m.n_ul, m.m_dl, k, rng)
+
+                if use_cache:
+                    key = assoc_s_np.tobytes()
+                    retries = 0
+                    while key in self.eval_cache and retries < max_retries:
+                        assoc_s_np = _perturb_valid(assoc_s_np, m.n_ul, m.m_dl, k, rng)
+                        key = assoc_s_np.tobytes()
+                        retries += 1
+
+                    if retries > 0:
+                        self.n_flips += 1
+
+                    new_pop_np[s] = assoc_s_np
+
+                    if key in self.eval_cache:
+                        self.n_cache_hits += 1
+                        inner = self.eval_cache[key]
+                    else:
+                        assoc_s_tf = tf.constant(assoc_s_np, dtype=tf.float32)
+                        inner = self.evaluate(assoc_s_tf)
+                        self.eval_cache[key] = inner
+                else:
+                    new_pop_np[s] = assoc_s_np
+                    assoc_s_tf = tf.constant(assoc_s_np, dtype=tf.float32)
+                    inner = self.evaluate(assoc_s_tf)
+
                 if inner.utility > best_score:
                     best_score = inner.utility
                     best = inner
-                    best_assoc = assoc_s.numpy().astype(np.int8)
+                    best_assoc = assoc_s_np.copy()
 
             prev = curve[-1] if curve else -np.inf
             curve.append(best_score)
@@ -176,6 +257,7 @@ class HybridSolverTF:
             if stalled >= cfg.patience_bwoa:
                 break
 
+            pop = tf.constant(new_pop_np, dtype=tf.float32)
             leader = tf.constant(best_assoc, dtype=tf.float32)
             pop = bwoa_step_tf(pop, leader, it, cfg.max_iter_bwoa, slope=cfg.sigmoid_slope)
 
@@ -199,6 +281,8 @@ class HybridSolverTF:
             n_inner_calls=self.n_inner_calls,
             rho=rho.numpy(),
             chi=chi.numpy(),
+            n_cache_hits=self.n_cache_hits,
+            n_flips=self.n_flips,
         )
 
 

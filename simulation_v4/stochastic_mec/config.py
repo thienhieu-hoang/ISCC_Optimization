@@ -148,6 +148,8 @@ class AlgorithmParams:
     max_iter_bwoa: int = 120                       # I_3^max
     patience_bwoa: int = 25                        # I_c
     tol_bwoa: float = 1e-5                         # varepsilon
+    cache_max_retries: int = 10                    # Max retries to perturb duplicate positions
+    enable_cache: bool = True                      # Enable memoization / evaluation cache
 
     # Algorithms 1 & 2 -- continuous power control (WOA / IWOA / PSO)
     n_agents_tpc: int = 30                         # S_1, S_2

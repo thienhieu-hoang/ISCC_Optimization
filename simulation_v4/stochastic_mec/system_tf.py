@@ -31,6 +31,8 @@ class SolutionTF:
     n_inner_calls: int = 0
     rho: np.ndarray | None = None
     chi: np.ndarray | None = None
+    n_cache_hits: int = 0
+    n_flips: int = 0
 
 
 class SystemModelTF:
