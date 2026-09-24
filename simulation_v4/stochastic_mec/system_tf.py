@@ -38,10 +38,17 @@ class SolutionTF:
 class SystemModelTF:
     """TensorFlow-accelerated signal model + objective functions."""
 
-    def __init__(self, topo: Topology, params: SystemParams, rng: np.random.Generator):
+    def __init__(
+        self,
+        topo: Topology,
+        params: SystemParams,
+        rng: np.random.Generator,
+        scheme: str = "MF-SIC",
+    ):
         self.topo = topo
         self.p = params
         self.rng = rng
+        self.scheme = scheme
 
         self.K = params.n_subchannels
         self.L = params.n_antennas
@@ -165,7 +172,11 @@ class SystemModelTF:
         self.vartheta_np = np.full(self.n_ul, p.accuracy_sensitivity, dtype=np.float32)
         self.lam_th = float(p.accuracy_threshold)
         self.chi_min_np = (-np.log(1.0 - self.lam_th) / (self.vartheta_np * self.sens_info_np)).astype(np.float32)
-        self.admissible_np = self.chi_min_np <= 1.0
+        if getattr(self, "scheme", "").upper() in ("ARJOA", "ALL-REMOTE", "ALL-OFFLOAD"):
+            self.chi_min_np = np.minimum(self.chi_min_np, 1.0)
+            self.admissible_np = np.ones(self.n_ul, dtype=bool)
+        else:
+            self.admissible_np = self.chi_min_np <= 1.0
 
         self.beta_t_np = np.full(self.n_ul, p.beta_time, dtype=np.float32)
         self.beta_e_np = np.full(self.n_ul, p.beta_energy, dtype=np.float32)
@@ -639,7 +650,7 @@ class SystemModelTF:
             return rho, chi, empty
         
         f = self.smca_tf(ul_sub, rho, chi, rates)
-        if not self.p.enable_iscc:
+        if not self.p.enable_iscc or getattr(self, "scheme", "").upper() in ("ARJOA", "ALL-REMOTE", "ALL-OFFLOAD"):
             return rho, chi, f
 
         for _ in range(max(1, self.p.iscc_rounds)):

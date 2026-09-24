@@ -118,7 +118,7 @@ def simulate_block_tf(
 ) -> tuple[BlockMetrics, np.ndarray]:
     rng = np.random.default_rng(seed)
     topo = topology(rng, params)
-    model = SystemModelTF(topo, params, rng)
+    model = SystemModelTF(topo, params, rng, scheme=scheme)
     solver = HybridSolverTF(model, rng, algo=algo, tpc=tpc, scheme=scheme)
     sol = solver.solve()
     return evaluate_solution_tf(model, sol), sol.curve
@@ -186,16 +186,43 @@ def run_sweep(
     make_topology: Callable[[float], TopologyFactory] | None = None,
     verbose: bool = True,
     jobs: int = 1,
+    summary_path: str | Path | Sequence[str | Path] | None = None,
 ) -> SweepResult:
     algo = algo or AlgorithmParams()
     curves = list(curves)
     result = SweepResult(x_label, [float(v) for v in x_values], {})
 
+    summary_files: list[Path] = []
+    if summary_path is not None:
+        if isinstance(summary_path, (list, tuple)):
+            summary_files = [Path(p) for p in summary_path]
+        else:
+            summary_files = [Path(summary_path)]
+
+    summary_data: dict = {
+        "parameter": x_label,
+        "n_realizations": n_realizations,
+        "points": {},
+    }
+    for sf in summary_files:
+        if sf.exists():
+            try:
+                loaded = json.loads(sf.read_text())
+                if isinstance(loaded, dict) and "points" in loaded:
+                    for pk, pv in loaded["points"].items():
+                        summary_data["points"].setdefault(pk, {}).update(pv)
+                break
+            except Exception:
+                pass
+
     for xi, x in enumerate(x_values):
         params = make_params(x)
         topo = make_topology(x) if make_topology is not None else (topology or fixed_topology())
+        x_key = str(x)
         if verbose:
             print(f"[{x_label} = {x}]", flush=True)
+        summary_data["points"].setdefault(x_key, {})
+
         for label, tpc, scheme in curves:
             if verbose:
                 print(f"  {label}", flush=True)
@@ -210,10 +237,28 @@ def run_sweep(
                 verbose=verbose,
             )
             result.add(label, metrics)
+            summary_str = (
+                f"U = {metrics['utility']:+.4f}   "
+                f"offloaded = {100 * metrics['offload_ratio']:.1f} %   "
+                f"t = {metrics['runtime']:.2f} s"
+            )
             if verbose:
-                print(f"    U = {metrics['utility']:+.4f}   "
-                      f"offloaded = {100 * metrics['offload_ratio']:.1f} %   "
-                      f"t = {metrics['runtime']:.2f} s", flush=True)
+                print(f"    {summary_str}", flush=True)
+
+            summary_data["points"][x_key][label] = {
+                "utility": round(float(metrics["utility"]), 4),
+                "offloaded_pct": round(float(100.0 * metrics["offload_ratio"]), 1),
+                "runtime_s": round(float(metrics["runtime"]), 2),
+                "summary": summary_str,
+            }
+
+            for sf in summary_files:
+                try:
+                    sf.parent.mkdir(parents=True, exist_ok=True)
+                    sf.write_text(json.dumps(summary_data, indent=2))
+                except Exception:
+                    pass
+
     return result
 
 

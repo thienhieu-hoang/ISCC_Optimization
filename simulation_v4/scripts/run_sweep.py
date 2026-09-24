@@ -26,8 +26,15 @@ def _plot(result, name, args, panels):
         print(f"saved {fig}")
 
 
+def _summary_paths(args, name: str) -> list[Path]:
+    res_path, _ = outputs(args, name)
+    return [res_path.parent / "summary.json", res_path.parent / f"{name}_summary.json"]
+
+
 def sweep_ue_density(args):
     xs = args.xs if args.xs is not None else list(range(4, 29, 6))
+    n_ul = getattr(args, "n_ul", None) or 3
+    n_dl = getattr(args, "n_dl", None) or 3
     result = run_sweep(
         r"Active-UE Density [$\times 10^{-6}/m^2$]",
         xs,
@@ -37,7 +44,8 @@ def sweep_ue_density(args):
         base_seed=args.seed,
         algo=algorithm_params(args),
         jobs=args.jobs,
-        make_topology=lambda x: fixed_topology(3, 3, int(x)),
+        make_topology=lambda x: fixed_topology(n_ul, n_dl, int(x)),
+        summary_path=_summary_paths(args, "ue_density"),
     )
     _plot(result, "ue_density", args,
           [("po", "offload_ratio", "Offloading Percentage"),
@@ -56,6 +64,7 @@ def sweep_uav_density(args):
         algo=algorithm_params(args),
         jobs=args.jobs,
         make_topology=lambda x: fixed_topology(int(x), 3, 10),
+        summary_path=_summary_paths(args, "uav_density"),
     )
     _plot(result, "uav_density", args, [("su", "utility", "System Utility")])
 
@@ -72,6 +81,7 @@ def sweep_jammer_density(args):
         algo=algorithm_params(args),
         jobs=args.jobs,
         topology=fixed_topology(3, 3, 10),
+        summary_path=_summary_paths(args, "jammer_density"),
     )
     _plot(result, "jammer_density", args, [("su", "utility", "System Utility")])
 
@@ -88,6 +98,7 @@ def sweep_datasize(args):
         algo=algorithm_params(args),
         jobs=args.jobs,
         topology=fixed_topology(3, 3, 10),
+        summary_path=_summary_paths(args, "datasize"),
     )
     _plot(result, "datasize", args, [("su", "utility", "System Utility")])
 
@@ -104,6 +115,7 @@ def sweep_taskload(args):
         algo=algorithm_params(args),
         jobs=args.jobs,
         topology=fixed_topology(3, 3, 10),
+        summary_path=_summary_paths(args, "taskload"),
     )
     _plot(result, "taskload", args, [("su", "utility", "System Utility")])
 
@@ -120,6 +132,7 @@ def sweep_capacity(args):
         algo=algorithm_params(args),
         jobs=args.jobs,
         topology=fixed_topology(3, 3, 10),
+        summary_path=_summary_paths(args, "capacity"),
     )
     _plot(result, "capacity", args, [("su", "utility", "System Utility")])
 
@@ -136,6 +149,7 @@ def sweep_power(args):
         algo=algorithm_params(args),
         jobs=args.jobs,
         topology=fixed_topology(3, 3, 10),
+        summary_path=_summary_paths(args, "power_budget"),
     )
     _plot(result, "power_budget", args, [("su", "utility", "System Utility")])
 
@@ -154,6 +168,7 @@ def sweep_preference(args):
         algo=algorithm_params(args),
         jobs=args.jobs,
         topology=fixed_topology(3, 3, 10),
+        summary_path=_summary_paths(args, "preference"),
     )
     _plot(result, "preference", args,
           [("time", "total_delay", "Total task execution time [s]"),
@@ -164,8 +179,9 @@ def sweep_preference(args):
 ISCC_CURVE = ("WOA-BWOA", "WOA", "MF-SIC")
 
 
-def _iscc_vs_atomic(args, x_label, xs, make_params, topology):
+def _iscc_vs_atomic(args, x_label, xs, make_params, topology, name: str | None = None):
     merged = SweepResult(x_label, [float(v) for v in xs], {})
+    summary_path = _summary_paths(args, name) if name else None
     for label, iscc in (("ISCC (partial + retention)", True), ("Atomic task ($\\rho=a$, $\\chi=1$)", False)):
         res = run_sweep(
             x_label, xs,
@@ -176,6 +192,7 @@ def _iscc_vs_atomic(args, x_label, xs, make_params, topology):
             algo=algorithm_params(args),
             jobs=args.jobs,
             topology=topology,
+            summary_path=summary_path,
         )
         merged.data[label] = res.data[ISCC_CURVE[0]]
     return merged
@@ -187,6 +204,7 @@ def sweep_accuracy_tradeoff(args):
         args, r"accuracy weight $\beta_n^{\tt a}$", xs,
         lambda x: SystemParams(beta_acc=x, beta_time=(1.0 - x) / 2.0),
         fixed_topology(3, 3, 10),
+        name="accuracy_tradeoff",
     )
     _plot(result, "accuracy_weight", args,
           [("acc", "mean_accuracy", r"Mean inference accuracy $\Lambda_n$"),
@@ -209,6 +227,7 @@ def sweep_sensing_snr(args):
         args, r"mean sensing SNR $\bar\gamma^{\tt sen}$ [dB]", xs,
         lambda x: SystemParams(sensing_snr_db=x),
         fixed_topology(3, 3, 10),
+        name="sensing_snr",
     )
     _plot(result, "sensing_snr", args,
           [("chi", "mean_retention", r"Mean retention $\chi_n^\star$"),
@@ -246,6 +265,8 @@ def main() -> None:
     ap.add_argument("sweep", choices=sorted(SWEEPS), help="which figure to reproduce")
     ap.add_argument("--xs", type=float, nargs="+", default=None,
                     help="custom x values for the sweep")
+    ap.add_argument("--n-ul", type=int, default=3, help="number of UL UAVs (default: 3)")
+    ap.add_argument("--n-dl", type=int, default=3, help="number of DL UAVs (default: 3)")
     args = ap.parse_args()
     SWEEPS[args.sweep](args)
 
