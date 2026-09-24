@@ -140,7 +140,7 @@ def monte_carlo_tf(
         met, _ = simulate_block_tf(seed, params, algo, tpc, scheme, topology)
         out.append(met)
         if verbose:
-            print(f"    realisation {r + 1}/{n_realizations}: U = {met.utility:+.4f}")
+            print(f"    realisation {r + 1}/{n_realizations}: U = {met.utility:+.4f}", flush=True)
     return average(out)
 
 
@@ -195,10 +195,10 @@ def run_sweep(
         params = make_params(x)
         topo = make_topology(x) if make_topology is not None else (topology or fixed_topology())
         if verbose:
-            print(f"[{x_label} = {x}]")
+            print(f"[{x_label} = {x}]", flush=True)
         for label, tpc, scheme in curves:
             if verbose:
-                print(f"  {label}")
+                print(f"  {label}", flush=True)
             metrics = monte_carlo_tf(
                 n_realizations,
                 base_seed + 1000 * xi,
@@ -207,12 +207,13 @@ def run_sweep(
                 tpc,
                 scheme,
                 topo,
+                verbose=verbose,
             )
             result.add(label, metrics)
             if verbose:
                 print(f"    U = {metrics['utility']:+.4f}   "
                       f"offloaded = {100 * metrics['offload_ratio']:.1f} %   "
-                      f"t = {metrics['runtime']:.2f} s")
+                      f"t = {metrics['runtime']:.2f} s", flush=True)
     return result
 
 

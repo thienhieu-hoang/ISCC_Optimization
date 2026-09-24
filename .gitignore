@@ -19,6 +19,7 @@ desktop.ini
 *.fdb_latexmk
 *.synctex.gz
 *.synctex(busy)
+*.err
 
 ## Index & Nomenclature
 *.idx

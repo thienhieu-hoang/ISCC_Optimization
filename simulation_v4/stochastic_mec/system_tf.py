@@ -585,6 +585,9 @@ class SystemModelTF:
         rates: tf.Tensor,
     ) -> tf.Tensor:
         """Prop 1 water-filling compute allocation: returns f_alloc (..., N_ul)."""
+        if self.n_ul == 0:
+            return tf.zeros(tf.concat([tf.shape(rho)[:-1], [0]], axis=0), dtype=tf.float32)
+
         offloading = (ul_sub >= 0) & (rho > 0.0)
         weight = self.beta_t_tf * rho * chi * self.c_raw / self.t_ref_tf
         root = tf.sqrt(tf.maximum(weight, 0.0))
@@ -629,6 +632,9 @@ class SystemModelTF:
         """Runs coordinate updates for (rho, chi, F)."""
         rho = tf.cast(ul_sub >= 0, tf.float32)
         chi = tf.ones_like(rho)
+        if self.n_ul == 0:
+            empty = tf.zeros(tf.concat([tf.shape(rho)[:-1], [0]], axis=0), dtype=tf.float32)
+            return rho, chi, empty
         
         f = self.smca_tf(ul_sub, rho, chi, rates)
         if not self.p.enable_iscc:
