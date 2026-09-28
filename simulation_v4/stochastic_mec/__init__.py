@@ -13,6 +13,7 @@ from .experiments_tf import (
     run_sweep,
     simulate_block_tf,
 )
+from .exhaustive import count_cases, exhaustive_search
 from .network import Topology, sample_topology, sample_topology_with_cells
 from .optimizers_tf import IWOA_TF, PSO_TF, WOA_TF, make_tpc_tf
 from .schemes import SCHEMES, Scheme, make_scheme
@@ -20,6 +21,8 @@ from .solver_tf import HybridSolverTF, solve_block_tf
 from .system_tf import SolutionTF, SystemModelTF
 
 __all__ = [
+    "count_cases",
+    "exhaustive_search",
     "SystemParams",
     "AlgorithmParams",
     "Topology",
