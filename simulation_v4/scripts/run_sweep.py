@@ -54,16 +54,18 @@ def sweep_ue_density(args):
 
 def sweep_uav_density(args):
     xs = args.xs if args.xs is not None else [1, 2, 3, 4, 5, 6]
+    n_dl = getattr(args, "n_dl", None) or 3
+    n_ue = getattr(args, "n_ue", None) or 10
     result = run_sweep(
         r"UL-UAV Density [$\times 10^{-6}/m^2$]",
         xs,
-        lambda x: SystemParams(lambda_sbs_ul=x * 1e-6),
+        lambda x: SystemParams(lambda_sbs_ul=x * 1e-6, lambda_sbs_dl=n_dl * 1e-6, lambda_ue_active=n_ue * 1e-6),
         DEFAULT_CURVES,
         n_realizations=args.realizations,
         base_seed=args.seed,
         algo=algorithm_params(args),
         jobs=args.jobs,
-        make_topology=lambda x: fixed_topology(int(x), 3, 10),
+        make_topology=lambda x: fixed_topology(int(x), n_dl, n_ue),
         summary_path=_summary_paths(args, "uav_density"),
     )
     _plot(result, "uav_density", args, [("su", "utility", "System Utility")])
@@ -267,6 +269,7 @@ def main() -> None:
                     help="custom x values for the sweep")
     ap.add_argument("--n-ul", type=int, default=3, help="number of UL UAVs (default: 3)")
     ap.add_argument("--n-dl", type=int, default=3, help="number of DL UAVs (default: 3)")
+    ap.add_argument("--n-ue", type=int, default=10, help="number of active UEs (default: 10)")
     args = ap.parse_args()
     SWEEPS[args.sweep](args)
 
