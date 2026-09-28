@@ -5,9 +5,12 @@ from __future__ import annotations
 import json
 import os
 import time
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Iterable, Sequence
+
+os.environ.setdefault("TF_FORCE_GPU_ALLOW_GROWTH", "true")
 
 import numpy as np
 import tensorflow as tf
@@ -124,6 +127,12 @@ def simulate_block_tf(
     return evaluate_solution_tf(model, sol), sol.curve
 
 
+def _worker_simulate_block(args: tuple) -> tuple[int, BlockMetrics]:
+    seed, params, algo, tpc, scheme, topology = args
+    met, _ = simulate_block_tf(seed, params, algo, tpc, scheme, topology)
+    return seed, met
+
+
 def monte_carlo_tf(
     n_realizations: int,
     base_seed: int,
@@ -133,14 +142,40 @@ def monte_carlo_tf(
     scheme: str,
     topology: TopologyFactory,
     verbose: bool = False,
+    jobs: int = 1,
 ) -> dict[str, float]:
-    out = []
-    for r in range(n_realizations):
-        seed = base_seed + r
-        met, _ = simulate_block_tf(seed, params, algo, tpc, scheme, topology)
-        out.append(met)
-        if verbose:
-            print(f"    realisation {r + 1}/{n_realizations}: U = {met.utility:+.4f}", flush=True)
+    if jobs <= 1 or n_realizations <= 1:
+        out = []
+        for r in range(n_realizations):
+            seed = base_seed + r
+            met, _ = simulate_block_tf(seed, params, algo, tpc, scheme, topology)
+            out.append(met)
+            if verbose:
+                print(f"    realisation {r + 1}/{n_realizations}: U = {met.utility:+.4f}", flush=True)
+        return average(out)
+
+    workers = min(int(jobs), n_realizations)
+    tasks = [
+        (base_seed + r, params, algo, tpc, scheme, topology)
+        for r in range(n_realizations)
+    ]
+    out_map: dict[int, BlockMetrics] = {}
+    completed_count = 0
+
+    with ProcessPoolExecutor(max_workers=workers) as executor:
+        future_to_idx = {
+            executor.submit(_worker_simulate_block, task): r
+            for r, task in enumerate(tasks)
+        }
+        for future in as_completed(future_to_idx):
+            r = future_to_idx[future]
+            completed_count += 1
+            _, met = future.result()
+            out_map[r] = met
+            if verbose:
+                print(f"    realisation {completed_count}/{n_realizations} (id={r + 1}): U = {met.utility:+.4f}", flush=True)
+
+    out = [out_map[r] for r in range(n_realizations)]
     return average(out)
 
 
@@ -235,6 +270,7 @@ def run_sweep(
                 scheme,
                 topo,
                 verbose=verbose,
+                jobs=jobs,
             )
             result.add(label, metrics)
             summary_str = (
