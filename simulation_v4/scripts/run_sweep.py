@@ -28,7 +28,7 @@ def _plot(result, name, args, panels):
 
 def _summary_paths(args, name: str) -> list[Path]:
     res_path, _ = outputs(args, name)
-    return [res_path.parent / "summary.json", res_path.parent / f"{name}_summary.json"]
+    return [res_path.parent / "summary.json"]
 
 
 def sweep_ue_density(args):

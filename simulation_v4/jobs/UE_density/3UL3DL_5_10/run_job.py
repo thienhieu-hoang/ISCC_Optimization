@@ -26,12 +26,13 @@ from stochastic_mec import AlgorithmParams  # noqa: E402
 # CONFIGURATION
 # ==============================================================================
 XS = list(range(5, 11, 5))         # Active-UE density: [5, 10, 15, 20, 25]
-REALIZATIONS = 5                 # Number of Monte-Carlo realizations
+REALIZATIONS = 100                 # Number of Monte-Carlo realizations
 SEED = 2025                        # Random seed
-MAX_ITER = 5                     # Maximum iterations for BWOA and TPC (default: 120)
+MAX_ITER = 200                     # Maximum iterations for BWOA and TPC (default: 120)
 N_AGENTS = 30                      # Number of agents for BWOA and TPC (default: 30)
-N_UL = 2                           # Number of UL UAVs (default: 3)
-N_DL = 1                           # Number of DL UAVs (default: 3)
+N_UL = 3                           # Number of UL UAVs (default: 3)
+N_DL = 3                           # Number of DL UAVs (default: 3)
+JOBS = 4
 # ==============================================================================
 
 
@@ -47,7 +48,8 @@ def _next_result_dir(parent_dir: Path, prefix: str = "result_") -> Path:
 
 def main() -> None:
     ap = base_parser(__doc__)
-    ap.set_defaults(realizations=REALIZATIONS, seed=SEED)
+    jobs = globals().get("JOBS", 1)
+    ap.set_defaults(realizations=REALIZATIONS, seed=SEED, jobs=jobs)
     ap.add_argument(
         "--xs",
         type=float,
@@ -92,6 +94,7 @@ def main() -> None:
     print(f"UL UAVs: {args.n_ul}, DL UAVs: {args.n_dl}", flush=True)
     print(f"Max iterations: {max_iter if (not args.quick and max_iter) else ('quick mode (20/40)' if args.quick else 'default (120)')}", flush=True)
     print(f"Number of agents: {n_agents if (not args.quick and n_agents) else ('quick mode (10)' if args.quick else 'default (30)')}", flush=True)
+    print(f"Parallel jobs: {args.jobs}", flush=True)
     print(f"Results will be saved to: {args.out}", flush=True)
     sweep_ue_density(args)
 

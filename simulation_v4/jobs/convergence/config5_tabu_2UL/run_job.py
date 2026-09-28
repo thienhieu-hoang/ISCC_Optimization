@@ -1,3 +1,6 @@
+#!/usr/bin/env python3
+"""Convergence simulation (BWOA and inner WOA / IWOA / PSO) reproducing Fig. 3."""
+
 from __future__ import annotations
 
 import sys
@@ -10,7 +13,7 @@ for p in [Path(__file__).resolve().parent, *Path(__file__).resolve().parents]:
         SIM_DIR = p
         break
 if SIM_DIR is None:
-    SIM_DIR = Path(__file__).resolve().parents[3]
+    SIM_DIR = Path(__file__).resolve().parents[2]
 
 SCRIPTS_DIR = SIM_DIR / "scripts"
 if str(SIM_DIR) not in sys.path:
@@ -19,19 +22,19 @@ if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
 from _common import base_parser  # noqa: E402
-from run_sweep import sweep_ue_density  # noqa: E402
+from fig_convergence import run_convergence  # noqa: E402
 from stochastic_mec import AlgorithmParams  # noqa: E402
 
 # ==============================================================================
 # CONFIGURATION
 # ==============================================================================
-XS = list(range(5, 11, 5))         # Active-UE density: [5, 10, 15, 20, 25]
-REALIZATIONS = 5                 # Number of Monte-Carlo realizations
-SEED = 2025                        # Random seed
-MAX_ITER = 5                     # Maximum iterations for BWOA and TPC (default: 120)
+UES = 10                            # Number of active UEs
+UL_CELLS = 2                       # Number of uplink UAV cells
+DL_CELLS = 1                       # Number of downlink UAV cells
+SEED = 2025                        # Random seed for topology generation
+MAX_ITER = 500                     # Maximum iterations for BWOA and TPC (default: 120)
 N_AGENTS = 30                      # Number of agents for BWOA and TPC (default: 30)
-N_UL = 2                           # Number of UL UAVs (default: 3)
-N_DL = 1                           # Number of DL UAVs (default: 3)
+JOBS = 1                           # convergence only runs on 1 realization
 # ==============================================================================
 
 
@@ -47,25 +50,25 @@ def _next_result_dir(parent_dir: Path, prefix: str = "result_") -> Path:
 
 def main() -> None:
     ap = base_parser(__doc__)
-    ap.set_defaults(realizations=REALIZATIONS, seed=SEED)
+    jobs = globals().get("JOBS", 3)
+    ap.set_defaults(seed=SEED, jobs=jobs)
     ap.add_argument(
-        "--xs",
-        type=float,
-        nargs="+",
-        default=XS,
-        help="Active-UE density values in 1e-6/m^2",
+        "--ues",
+        type=int,
+        default=UES,
+        help="Number of active UEs (default: 6)",
     )
     ap.add_argument(
-        "--n-ul",
+        "--ul-cells",
         type=int,
-        default=globals().get("N_UL", 3) or 3,
-        help="Number of UL UAVs (default: 3)",
+        default=UL_CELLS,
+        help="Number of uplink UAV cells (default: 3)",
     )
     ap.add_argument(
-        "--n-dl",
+        "--dl-cells",
         type=int,
-        default=globals().get("N_DL", 3) or 3,
-        help="Number of DL UAVs (default: 3)",
+        default=DL_CELLS,
+        help="Number of downlink UAV cells (default: 3)",
     )
     args = ap.parse_args()
 
@@ -88,12 +91,13 @@ def main() -> None:
     else:
         args.out.mkdir(parents=True, exist_ok=True)
 
-    print(f"Sweep points: {args.xs}", flush=True)
-    print(f"UL UAVs: {args.n_ul}, DL UAVs: {args.n_dl}", flush=True)
-    print(f"Max iterations: {max_iter if (not args.quick and max_iter) else ('quick mode (20/40)' if args.quick else 'default (120)')}", flush=True)
-    print(f"Number of agents: {n_agents if (not args.quick and n_agents) else ('quick mode (10)' if args.quick else 'default (30)')}", flush=True)
-    print(f"Results will be saved to: {args.out}", flush=True)
-    sweep_ue_density(args)
+    print(f"Topology: {args.ues} UEs, {args.ul_cells} UL UAVs, {args.dl_cells} DL UAVs")
+    print(f"Random seed: {args.seed}")
+    print(f"Max iterations: {max_iter if (not args.quick and max_iter) else ('quick mode (20/40)' if args.quick else 'default (120)')}")
+    print(f"Number of agents: {n_agents if (not args.quick and n_agents) else ('quick mode (10)' if args.quick else 'default (30)')}")
+    print(f"Parallel jobs: {args.jobs}")
+    print(f"Results will be saved to: {args.out}")
+    run_convergence(args)
 
 
 if __name__ == "__main__":
