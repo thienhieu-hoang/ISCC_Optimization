@@ -1,3 +1,6 @@
+#!/usr/bin/env python3
+"""UE Density sweep (20 with Pure Memoization, 2 UL UAVs, 1 DL UAV)."""
+
 from __future__ import annotations
 
 import sys
@@ -25,13 +28,17 @@ from stochastic_mec import AlgorithmParams  # noqa: E402
 # ==============================================================================
 # CONFIGURATION
 # ==============================================================================
-XS = list(range(5, 11, 5))         # Active-UE density: [5, 10, 15, 20, 25]
-REALIZATIONS = 5                 # Number of Monte-Carlo realizations
+XS = [20]         # Active-UE density: [20] in 1e-6/m^2
+REALIZATIONS = 8 # 100                 # Number of Monte-Carlo realizations
 SEED = 2025                        # Random seed
-MAX_ITER = 5                     # Maximum iterations for BWOA and TPC (default: 120)
-N_AGENTS = 30                      # Number of agents for BWOA and TPC (default: 30)
+MAX_ITER = 200                     # Maximum iterations for BWOA (default: 120; TPC defaults to 60)
+N_AGENTS = 30                      # Number of agents for BWOA (default: 30; TPC defaults to 15)
+N_AGENTS_TPC = 15                  # Number of agents for inner continuous TPC
+MAX_ITER_TPC = 60                  # Maximum iterations for inner continuous TPC
+CACHE_MAX_RETRIES = 0              # 0 = Pure Memoization (no perturbation flips)
 N_UL = 2                           # Number of UL UAVs (default: 3)
 N_DL = 1                           # Number of DL UAVs (default: 3)
+JOBS = 4                           # Number of parallel workers (default: 4)
 # ==============================================================================
 
 
@@ -47,7 +54,8 @@ def _next_result_dir(parent_dir: Path, prefix: str = "result_") -> Path:
 
 def main() -> None:
     ap = base_parser(__doc__)
-    ap.set_defaults(realizations=REALIZATIONS, seed=SEED)
+    jobs = globals().get("JOBS", 4)
+    ap.set_defaults(realizations=REALIZATIONS, seed=SEED, jobs=jobs)
     ap.add_argument(
         "--xs",
         type=float,
@@ -58,25 +66,33 @@ def main() -> None:
     ap.add_argument(
         "--n-ul",
         type=int,
-        default=globals().get("N_UL", 3) or 3,
-        help="Number of UL UAVs (default: 3)",
+        default=globals().get("N_UL", 2) or 2,
+        help="Number of UL UAVs (default: 2)",
     )
     ap.add_argument(
         "--n-dl",
         type=int,
-        default=globals().get("N_DL", 3) or 3,
-        help="Number of DL UAVs (default: 3)",
+        default=globals().get("N_DL", 1) or 1,
+        help="Number of DL UAVs (default: 1)",
     )
     args = ap.parse_args()
 
-    # Apply custom MAX_ITER and N_AGENTS if defined; otherwise falls back to defaults (120 and 30)
-    max_iter = globals().get("MAX_ITER", None)
-    n_agents = globals().get("N_AGENTS", None)
-    algo_kwargs = {}
-    if max_iter is not None:
-        algo_kwargs.update(max_iter_bwoa=max_iter, max_iter_tpc=max_iter)
-    if n_agents is not None:
-        algo_kwargs.update(n_agents_bwoa=n_agents, n_agents_tpc=n_agents)
+    # Apply custom MAX_ITER and N_AGENTS if defined; otherwise falls back to defaults
+    max_iter_bwoa = globals().get("MAX_ITER_BWOA", globals().get("MAX_ITER", None))
+    max_iter_tpc = globals().get("MAX_ITER_TPC", 60)
+    n_agents_bwoa = globals().get("N_AGENTS_BWOA", globals().get("N_AGENTS", None))
+    n_agents_tpc = globals().get("N_AGENTS_TPC", 15)
+    cache_retries = globals().get("CACHE_MAX_RETRIES", 0)
+
+    algo_kwargs = {"cache_max_retries": cache_retries}
+    if max_iter_bwoa is not None:
+        algo_kwargs["max_iter_bwoa"] = max_iter_bwoa
+    if max_iter_tpc is not None:
+        algo_kwargs["max_iter_tpc"] = max_iter_tpc
+    if n_agents_bwoa is not None:
+        algo_kwargs["n_agents_bwoa"] = n_agents_bwoa
+    if n_agents_tpc is not None:
+        algo_kwargs["n_agents_tpc"] = n_agents_tpc
 
     if not args.quick and algo_kwargs:
         args.algo = AlgorithmParams(**algo_kwargs)
@@ -88,10 +104,13 @@ def main() -> None:
     else:
         args.out.mkdir(parents=True, exist_ok=True)
 
-    print(f"Sweep points: {args.xs}", flush=True)
+    algo = args.algo if getattr(args, "algo", None) is not None else AlgorithmParams()
+    print(f"Sweep points (Active UEs): {args.xs}", flush=True)
     print(f"UL UAVs: {args.n_ul}, DL UAVs: {args.n_dl}", flush=True)
-    print(f"Max iterations: {max_iter if (not args.quick and max_iter) else ('quick mode (20/40)' if args.quick else 'default (120)')}", flush=True)
-    print(f"Number of agents: {n_agents if (not args.quick and n_agents) else ('quick mode (10)' if args.quick else 'default (30)')}", flush=True)
+    print(f"Max iterations: BWOA={algo.max_iter_bwoa}, TPC={algo.max_iter_tpc}", flush=True)
+    print(f"Number of agents: BWOA={algo.n_agents_bwoa}, TPC={algo.n_agents_tpc}", flush=True)
+    print(f"Cache mode: Pure Memoization (cache_max_retries={algo.cache_max_retries})", flush=True)
+    print(f"Parallel jobs: {args.jobs}", flush=True)
     print(f"Results will be saved to: {args.out}", flush=True)
     sweep_ue_density(args)
 
