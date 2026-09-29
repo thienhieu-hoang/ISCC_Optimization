@@ -206,7 +206,7 @@ class HybridSolverTF:
         self.n_cache_hits = 0
         self.n_flips = 0
         use_cache = getattr(cfg, "enable_cache", True)
-        max_retries = getattr(cfg, "cache_max_retries", 10)
+        max_retries = getattr(cfg, "cache_max_retries", 0)
 
         pop_np = self.scheme.seed(m.assoc_shape, m.n_ul, m.m_dl, rng, cfg.n_agents_bwoa).astype(np.float32)
         pop = tf.constant(pop_np, dtype=tf.float32)

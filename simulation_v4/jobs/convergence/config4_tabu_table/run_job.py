@@ -75,7 +75,7 @@ def main() -> None:
     # Apply custom MAX_ITER and N_AGENTS if defined; otherwise falls back to defaults (120 and 30)
     max_iter = globals().get("MAX_ITER", None)
     n_agents = globals().get("N_AGENTS", None)
-    algo_kwargs = {}
+    algo_kwargs = {"cache_max_retries": 10}
     if max_iter is not None:
         algo_kwargs.update(max_iter_bwoa=max_iter, max_iter_tpc=max_iter)
     if n_agents is not None:

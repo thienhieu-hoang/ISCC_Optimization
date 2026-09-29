@@ -148,18 +148,18 @@ class AlgorithmParams:
     max_iter_bwoa: int = 120                       # I_3^max
     patience_bwoa: int = 25                        # I_c
     tol_bwoa: float = 1e-5                         # varepsilon
-    cache_max_retries: int = 10                    # Max retries to perturb duplicate positions
+    cache_max_retries: int = 0                     # 0 = pure memoization (instant reuse, no perturbation flips)
     enable_cache: bool = True                      # Enable memoization / evaluation cache
 
     # Algorithms 1 & 2 -- continuous power control (WOA / IWOA / PSO)
-    n_agents_tpc: int = 30                         # S_1, S_2
-    max_iter_tpc: int = 120                        # I_1^max, I_2^max
-    patience_tpc: int = 15
+    n_agents_tpc: int = 15                         # S_1, S_2 (inner continuous space is low-dim: ~4-6 vars)
+    max_iter_tpc: int = 60                         # I_1^max, I_2^max (converges fast)
+    patience_tpc: int = 8                          # inner early stopping tolerance patience
     tol_tpc: float = 1e-6
 
     # IWOA adaptive population
-    pop_min: int = 20
-    pop_max: int = 40
+    pop_min: int = 10
+    pop_max: int = 20
     iwoa_alpha: float = 0.25
 
     # PSO
