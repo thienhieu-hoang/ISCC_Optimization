@@ -118,8 +118,9 @@ def main() -> None:
             model = SystemModelTF(topo, params, rng)
             n_cases = count_cases(model)
 
-            topo_hash = abs(hash(topo.ue_pos.tobytes())) % 100000
-            chan_hash = abs(hash(model.hnorm2_np.tobytes())) % 100000
+            import hashlib
+            topo_hash = int(hashlib.md5(topo.ue_pos.tobytes()).hexdigest()[:8], 16) % 100000
+            chan_hash = int(hashlib.md5(model.hnorm2_np.tobytes()).hexdigest()[:8], 16) % 100000
 
             if n_cases > args.max_cases:
                 print(f"  R{r + 1}/{args.realizations} (Seed {seed}): skipped ({n_cases:,} cases > limit)")
