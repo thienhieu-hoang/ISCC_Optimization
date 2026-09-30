@@ -119,7 +119,8 @@ def main() -> None:
         for r in range(args.realizations):
             seed = args.seed + 1000 * i + r
             rng = np.random.default_rng(seed)
-            topo = sample_topology_with_cells(rng, params, args.ul_cells, args.dl_cells, density)
+            min_dl = 0 if density < (args.ul_cells + args.dl_cells) else 1
+            topo = sample_topology_with_cells(rng, params, args.ul_cells, args.dl_cells, density, min_dl_per_cell=min_dl)
             model = SystemModelTF(topo, params, rng)
             n_cases = count_cases(model)
 

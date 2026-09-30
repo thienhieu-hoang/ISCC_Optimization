@@ -179,6 +179,11 @@ def sample_topology_with_cells(
     min_dl_per_cell: int = 1,
 ) -> Topology:
     """Draw a topology ensuring all UL and DL cells are non-empty, favoring UL cells."""
+    if n_active_ue < (n_ul_cells * min_ul_per_cell + n_dl_cells * min_dl_per_cell):
+        # When fewer UEs than total cells, prioritize filling UL cells first, leaving DL cell empty
+        if n_active_ue >= n_ul_cells * min_ul_per_cell:
+            min_dl_per_cell = 0
+
     n_sbs = n_ul_cells + n_dl_cells
     min_dl_total = n_dl_cells * min_dl_per_cell
     min_ul_total = max(n_ul_cells * min_ul_per_cell, (min_dl_total + 1) if ensure_more_ul else (n_ul_cells * min_ul_per_cell))
@@ -194,7 +199,7 @@ def sample_topology_with_cells(
             n_active_ue=effective_n_ue,
             n_ul_cells=n_ul_cells,
         )
-        cond_cells = (topo.ul_cells.size == n_ul_cells and topo.dl_cells.size == n_dl_cells)
+        cond_cells = (topo.ul_cells.size == n_ul_cells and (topo.dl_cells.size == n_dl_cells if min_dl_per_cell > 0 else True))
         cond_more_ul = (topo.ul_ues.size > topo.dl_ues.size) if ensure_more_ul else True
         if cond_cells and cond_more_ul:
             return topo
