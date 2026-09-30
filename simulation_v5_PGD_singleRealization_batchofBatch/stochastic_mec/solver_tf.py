@@ -1,0 +1,844 @@
+"""Algorithm 3: Batched BWOA Solver with Multi-Start PGD on GPU."""
+
+from __future__ import annotations
+
+import time
+from dataclasses import dataclass
+
+import numpy as np
+import tensorflow as tf
+
+from .config import AlgorithmParams
+from .optimizers_tf import bwoa_step_tf, make_tpc_tf
+from .schemes import Scheme, make_scheme
+from .system_tf import SolutionTF, SystemModelTF
+
+
+@dataclass
+class _InnerTF:
+    utility: float
+    p_ul_tf: tf.Tensor
+    q_dl_tf: tf.Tensor
+    utility_tf: tf.Tensor
+    p_ul_np: np.ndarray | None = None
+    q_dl_np: np.ndarray | None = None
+    pruned: bool = False
+
+    @property
+    def p_ul(self) -> np.ndarray:
+        if self.p_ul_np is None:
+            self.p_ul_np = self.p_ul_tf.numpy()
+        return self.p_ul_np
+
+    @property
+    def q_dl(self) -> np.ndarray:
+        if self.q_dl_np is None:
+            self.q_dl_np = self.q_dl_tf.numpy()
+        return self.q_dl_np
+
+
+@tf.function
+def repair_valid_tf(assoc: tf.Tensor, n_ul: int, m_dl: int, k: int) -> tf.Tensor:
+    """Enforce physical association constraints on GPU tensor:
+    - UL UEs (rows 0 to n_ul-1): <= 1 subchannel (local computing if 0)
+    - DL UAVs (rows n_ul to n_ul+m_dl-1): == 1 subchannel
+    """
+    if k == 0:
+        return assoc
+    rows = n_ul + m_dl
+    if rows == 0:
+        return assoc
+
+    parts = []
+    if n_ul > 0:
+        ul_part = assoc[:n_ul]
+        ul_sum = tf.reduce_sum(ul_part, axis=-1, keepdims=True)
+        ul_noise = tf.random.uniform(tf.shape(ul_part), 0.0, 1e-4, dtype=tf.float32)
+        ul_choice = tf.argmax(ul_part * 10.0 + ul_noise, axis=-1)
+        ul_one_hot = tf.one_hot(ul_choice, depth=k, dtype=tf.float32)
+        repaired_ul = tf.where(ul_sum > 1.0, ul_one_hot, ul_part)
+        repaired_ul = tf.where(repaired_ul >= 0.5, 1.0, 0.0)
+        parts.append(repaired_ul)
+
+    if m_dl > 0:
+        dl_part = assoc[n_ul:n_ul + m_dl]
+        dl_noise = tf.random.uniform(tf.shape(dl_part), 0.0, 1e-4, dtype=tf.float32)
+        dl_choice = tf.argmax(dl_part * 10.0 + dl_noise, axis=-1)
+        repaired_dl = tf.one_hot(dl_choice, depth=k, dtype=tf.float32)
+        parts.append(repaired_dl)
+
+    return tf.concat(parts, axis=0) if len(parts) > 1 else parts[0]
+
+
+@tf.function
+def repair_population_tf(pop: tf.Tensor, n_ul: int, m_dl: int, k: int) -> tf.Tensor:
+    """Batch repair of an entire population tensor (S, rows, k) on GPU."""
+    if k == 0:
+        return pop
+    parts = []
+    if n_ul > 0:
+        ul_part = pop[:, :n_ul, :]
+        ul_sum = tf.reduce_sum(ul_part, axis=-1, keepdims=True)
+        ul_noise = tf.random.uniform(tf.shape(ul_part), 0.0, 1e-4, dtype=tf.float32)
+        ul_choice = tf.argmax(ul_part * 10.0 + ul_noise, axis=-1)
+        ul_one_hot = tf.one_hot(ul_choice, depth=k, dtype=tf.float32)
+        repaired_ul = tf.where(ul_sum > 1.0, ul_one_hot, ul_part)
+        repaired_ul = tf.where(repaired_ul >= 0.5, 1.0, 0.0)
+        parts.append(repaired_ul)
+
+    if m_dl > 0:
+        dl_part = pop[:, n_ul:n_ul + m_dl, :]
+        dl_noise = tf.random.uniform(tf.shape(dl_part), 0.0, 1e-4, dtype=tf.float32)
+        dl_choice = tf.argmax(dl_part * 10.0 + dl_noise, axis=-1)
+        repaired_dl = tf.one_hot(dl_choice, depth=k, dtype=tf.float32)
+        parts.append(repaired_dl)
+
+    return tf.concat(parts, axis=1) if len(parts) > 1 else parts[0]
+
+
+@tf.function
+def perturb_valid_tf(assoc: tf.Tensor, n_ul: int, m_dl: int, k: int) -> tf.Tensor:
+    """Make a valid 1-step perturbation directly on GPU:
+    reassign 1 random UE or DL UAV to a different valid channel.
+    """
+    rows = n_ul + m_dl
+    if rows == 0 or k <= 1:
+        return repair_valid_tf(assoc, n_ul, m_dl, k)
+
+    row = tf.random.uniform([], minval=0, maxval=rows, dtype=tf.int32)
+    current_chan = tf.argmax(assoc[row], axis=-1, output_type=tf.int32)
+    has_chan = tf.reduce_sum(assoc[row]) > 0.5
+
+    shift = tf.random.uniform([], minval=1, maxval=k, dtype=tf.int32)
+    new_chan = (current_chan + shift) % k
+
+    is_ul = row < n_ul
+    turn_off = is_ul & has_chan & (tf.random.uniform([]) < 0.25)
+
+    new_row = tf.cond(
+        turn_off,
+        lambda: tf.zeros([k], dtype=tf.float32),
+        lambda: tf.one_hot(new_chan, depth=k, dtype=tf.float32),
+    )
+
+    indices = tf.reshape(row, [1, 1])
+    updates = tf.reshape(new_row, [1, k])
+    perturbed = tf.tensor_scatter_nd_update(assoc, indices, updates)
+    return repair_valid_tf(perturbed, n_ul, m_dl, k)
+
+
+def _repair_valid(assoc_np: np.ndarray, n_ul: int, m_dl: int, k: int, rng: np.random.Generator | None = None) -> np.ndarray:
+    """Compatibility wrapper around repair_valid_tf."""
+    assoc_tf = tf.constant(assoc_np, dtype=tf.float32)
+    return repair_valid_tf(assoc_tf, n_ul, m_dl, k).numpy().astype(assoc_np.dtype)
+
+
+def _perturb_valid(assoc_np: np.ndarray, n_ul: int, m_dl: int, k: int, rng: np.random.Generator | None = None) -> np.ndarray:
+    """Compatibility wrapper around perturb_valid_tf."""
+    assoc_tf = tf.constant(assoc_np, dtype=tf.float32)
+    return perturb_valid_tf(assoc_tf, n_ul, m_dl, k).numpy().astype(assoc_np.dtype)
+
+
+def scheme_penalty_tf(scheme: Scheme, assoc: tf.Tensor, n_ul: int) -> tf.Tensor:
+    """Evaluate access scheme penalty on GPU tensor: shape (...,)."""
+    name = scheme.name.upper()
+    if name == "MF-SIC":
+        return tf.zeros(tf.shape(assoc)[:-2], dtype=tf.float32)
+    a_ul = assoc[..., :n_ul, :]
+    a_dl = assoc[..., n_ul:, :]
+    big = tf.constant(1e14, dtype=tf.float32)
+    if name == "ARJOA":
+        g = tf.reduce_sum(a_ul, axis=-1) - 1.0
+        return big * tf.reduce_sum(tf.square(g), axis=-1)
+    if name == "IOJOA":
+        dec = tf.constant(scheme.offload_decision, dtype=tf.float32) if scheme.offload_decision is not None else tf.ones(n_ul, dtype=tf.float32)
+        g = tf.reduce_sum(a_ul, axis=-1) - dec
+        return big * tf.reduce_sum(tf.square(g), axis=-1)
+    if name == "ALCA":
+        return big * tf.reduce_sum(a_ul, axis=[-2, -1])
+    if name == "FDMA":
+        load = tf.reduce_sum(a_ul, axis=-2) + tf.reduce_sum(a_dl, axis=-2)
+        g = tf.maximum(load - 1.0, 0.0)
+        return big * tf.reduce_sum(tf.square(g), axis=-1)
+    return tf.zeros(tf.shape(assoc)[:-2], dtype=tf.float32)
+
+
+
+def get_tabu_key(assoc: tf.Tensor) -> bytes:
+    """Extract a fast, unique byte key for the association matrix for Tabu table lookup."""
+    return bytes(tf.cast(assoc >= 0.5, tf.int8).numpy().tobytes())
+
+
+class HybridSolverTF:
+    """Hybrid <TPC>-BWOA solver accelerated with TensorFlow on GPU."""
+
+    def __init__(
+        self,
+        model: SystemModelTF,
+        rng: np.random.Generator,
+        algo: AlgorithmParams | None = None,
+        tpc: str = "PGD",
+        scheme: str | Scheme = "MF-SIC",
+    ):
+        self.model = model
+        self.rng = rng
+        self.algo = algo or AlgorithmParams()
+        self.tpc_name = tpc.upper()
+        self.tpc = make_tpc_tf(tpc, self.algo)
+        self.scheme = scheme if isinstance(scheme, Scheme) else make_scheme(scheme, model.n_ul, rng)
+        self.n_inner_calls = 0
+        self.eval_cache: dict[bytes, _InnerTF] = {}
+        self.n_cache_hits = 0
+        self.n_flips = 0
+
+    # ------------------------------------------------------------------ #
+    # Inner Power Control Problems (Multi-Start PGD / Swarm on GPU)
+    # ------------------------------------------------------------------ #
+    def solve_mpc(
+        self,
+        ul_sub: tf.Tensor,
+        xi: tf.Tensor,
+        rho: tf.Tensor,
+        chi: tf.Tensor,
+    ) -> tuple[tf.Tensor, tf.Tensor]:
+        m = self.model
+        n_ul = m.n_ul
+        if n_ul == 0:
+            return tf.constant(0.0, dtype=tf.float32), tf.zeros(0, dtype=tf.float32)
+
+        active_mask = (ul_sub >= 0)
+        active_indices = tf.cast(tf.where(active_mask)[:, 0], tf.int32)
+
+        if tf.size(active_indices) == 0:
+            p_full = tf.fill([n_ul], float(m.p.p_min))
+            return tf.constant(0.0, dtype=tf.float32), p_full
+
+        num_active = int(tf.size(active_indices))
+        lb = tf.fill([num_active], float(m.p.p_min))
+        ub = tf.fill([num_active], float(m.p.p_max))
+
+        # Build structured multi-start seeds:
+        # 1. p_max (full power budget)
+        p_max_active = ub
+        # 2. p_dagger (Lemma 1 analytical bisection root)
+        p_dag_full = m.compute_p_dagger_tf(ul_sub, rho, chi)
+        p_dag_active = tf.gather(p_dag_full, active_indices)
+        # 3. p_half (mid-range power)
+        p_half_active = 0.5 * (lb + ub)
+        # 4. p_low (low power budget)
+        p_low_active = lb + 0.1 * (ub - lb)
+
+        seeds = tf.stack([p_max_active, p_dag_active, p_half_active, p_low_active], axis=0)
+        s_size = int(tf.shape(seeds)[0]) if self.tpc_name in ("PGD", "MULTI_PGD") else self.algo.n_agents_tpc
+
+        # Precompute static broadcasted tensors outside the inner optimization loop
+        batch_idx = tf.repeat(tf.range(s_size), num_active)
+        active_rep = tf.tile(active_indices, [s_size])
+        scatter_indices = tf.stack([batch_idx, active_rep], axis=-1)
+        p_base = tf.fill([s_size, n_ul], float(m.p.p_min))
+
+        ul_sub_expanded = tf.broadcast_to(ul_sub, [s_size, n_ul])
+        xi_expanded = tf.broadcast_to(xi, [s_size, m.K, m.m_ul])
+        rho_expanded = tf.broadcast_to(rho, [s_size, n_ul])
+        chi_expanded = tf.broadcast_to(chi, [s_size, n_ul])
+
+        # Batched fitness closure: x has shape (S, num_active)
+        def batched_fitness(x: tf.Tensor) -> tf.Tensor:
+            updates = tf.reshape(x, [-1])
+            p_batch = tf.tensor_scatter_nd_update(p_base, scatter_indices, updates)
+            return m.mpc_objective_tf(ul_sub_expanded, p_batch, xi_expanded, rho_expanded, chi_expanded)
+
+        res = self.tpc.minimize(batched_fitness, lb, ub, seeds=seeds)
+        
+        p_full = tf.fill([n_ul], float(m.p.p_min))
+        pos_tf = res.position_tf if res.position_tf is not None else tf.constant(res.position, dtype=tf.float32)
+        p_opt_tf = tf.tensor_scatter_nd_update(
+            p_full,
+            tf.expand_dims(active_indices, -1),
+            pos_tf,
+        )
+        score_tf = res.score_tf if res.score_tf is not None else tf.constant(res.score, dtype=tf.float32)
+        return score_tf, p_opt_tf
+
+    def solve_dl_tpc(
+        self,
+        dl_sub: tf.Tensor,
+        ul_sub: tf.Tensor,
+        p_ul: tf.Tensor,
+    ) -> tuple[tf.Tensor, tf.Tensor]:
+        m = self.model
+        if m.n_dl == 0:
+            return tf.constant(0.0, dtype=tf.float32), tf.zeros(0, dtype=tf.float32)
+
+        lb, ub = m.dl_power_bounds_tf(dl_sub)
+
+        # Multi-start seeds for DL powers:
+        q_seeds = tf.stack([ub, 0.5 * (lb + ub), lb + 0.1 * (ub - lb), lb], axis=0)
+        s_size = int(tf.shape(q_seeds)[0]) if self.tpc_name in ("PGD", "MULTI_PGD") else self.algo.n_agents_tpc
+
+        # Precompute static broadcasted tensors outside the loop
+        dl_sub_exp = tf.broadcast_to(dl_sub, [s_size, m.m_dl])
+        ul_sub_exp = tf.broadcast_to(ul_sub, [s_size, m.n_ul])
+        p_ul_exp = tf.broadcast_to(p_ul, [s_size, m.n_ul])
+
+        def batched_fitness(q: tf.Tensor) -> tf.Tensor:
+            return -m.dl_objective_tf(dl_sub_exp, q, ul_sub_exp, p_ul_exp)
+
+        res = self.tpc.minimize(batched_fitness, lb, ub, seeds=q_seeds)
+        fallback = m.equal_split_dl_power_tf(dl_sub)
+
+        pos_tf = res.position_tf if res.position_tf is not None else tf.constant(res.position, dtype=tf.float32)
+        score_res_tf = res.score_tf if res.score_tf is not None else tf.constant(res.score, dtype=tf.float32)
+
+        # Compare with equal-split fallback on GPU:
+        score_fallback_tf = -m.dl_objective_tf(dl_sub, fallback, ul_sub, p_ul)
+        use_fallback = score_fallback_tf < score_res_tf
+        q_opt = tf.where(use_fallback, fallback, pos_tf)
+        best_score_tf = tf.where(use_fallback, score_fallback_tf, score_res_tf)
+        return best_score_tf, q_opt
+
+    # ------------------------------------------------------------------ #
+    # Nested Batched Inner Power Control (PGD / WOA / PSO on GPU)
+    # ------------------------------------------------------------------ #
+    def solve_mpc_batch(
+        self,
+        ul_subs: tf.Tensor,
+        xi: tf.Tensor,
+        rho: tf.Tensor,
+        chi: tf.Tensor,
+    ) -> tuple[tf.Tensor, tf.Tensor]:
+        m = self.model
+        B = tf.shape(ul_subs)[0]
+        n_ul = m.n_ul
+        if n_ul == 0:
+            return tf.zeros([B], dtype=tf.float32), tf.zeros([B, 0], dtype=tf.float32)
+
+        lb = tf.fill([B, 1, n_ul], float(m.p.p_min))
+        ub = tf.fill([B, 1, n_ul], float(m.p.p_max))
+        off_mask = (ul_subs >= 0)[:, None, :]
+
+        # Multi-start structured seeds: (B, 4, n_ul)
+        s1 = ub
+        s2 = tf.expand_dims(m.compute_p_dagger_tf(ul_subs, rho, chi), 1)
+        s3 = 0.5 * (lb + ub)
+        s4 = lb + 0.1 * (ub - lb)
+        seeds = tf.concat([s1, s2, s3, s4], axis=1)
+
+        if self.tpc_name in ("PGD", "MULTI_PGD"):
+            k_seeds = 4
+            ul_subs_exp = tf.broadcast_to(tf.expand_dims(ul_subs, 1), [B, k_seeds, n_ul])
+            xi_exp = tf.broadcast_to(tf.expand_dims(xi, 1), [B, k_seeds, m.K, m.m_ul])
+            rho_exp = tf.broadcast_to(tf.expand_dims(rho, 1), [B, k_seeds, n_ul])
+            chi_exp = tf.broadcast_to(tf.expand_dims(chi, 1), [B, k_seeds, n_ul])
+
+            pos = tf.where(off_mask, seeds, lb)
+            lr = self.algo.lr_pgd
+            beta1, beta2, eps = 0.9, 0.999, 1e-8
+            m_mom = tf.zeros_like(pos)
+            v_mom = tf.zeros_like(pos)
+
+            for t in range(self.algo.max_iter_pgd):
+                pos_var = tf.where(off_mask, tf.clip_by_value(pos, lb, ub), lb)
+                with tf.GradientTape() as tape:
+                    tape.watch(pos_var)
+                    losses = m.mpc_objective_tf(ul_subs_exp, pos_var, xi_exp, rho_exp, chi_exp)
+                    tot_loss = tf.reduce_sum(losses)
+
+                grads = tape.gradient(tot_loss, pos_var)
+                grads = tf.where(tf.math.is_finite(grads), grads, 0.0)
+                grads = tf.clip_by_norm(grads, clip_norm=10.0, axes=[-1])
+
+                t_step = float(t + 1)
+                m_mom = beta1 * m_mom + (1.0 - beta1) * grads
+                v_mom = beta2 * v_mom + (1.0 - beta2) * tf.square(grads)
+                m_hat = m_mom / (1.0 - beta1 ** t_step)
+                v_hat = v_mom / (1.0 - beta2 ** t_step)
+                pos = pos_var - lr * m_hat / (tf.sqrt(v_hat) + eps)
+                pos = tf.where(off_mask, tf.clip_by_value(pos, lb, ub), lb)
+
+            final_losses = m.mpc_objective_tf(ul_subs_exp, pos, xi_exp, rho_exp, chi_exp)
+            best_seed_idx = tf.argmin(final_losses, axis=-1, output_type=tf.int32)
+            b_coords = tf.stack([tf.range(B, dtype=tf.int32), best_seed_idx], axis=-1)
+            best_score = tf.gather_nd(final_losses, b_coords)
+            best_p_ul = tf.gather_nd(pos, b_coords)
+            best_p_ul = tf.where(ul_subs >= 0, best_p_ul, float(m.p.p_min))
+            return best_score, best_p_ul
+
+        elif self.tpc_name == "PSO":
+            S = self.algo.n_agents_tpc
+            max_iter = self.algo.max_iter_tpc
+            off_mask_S = tf.broadcast_to(off_mask, [B, S, n_ul])
+            lb_S = tf.broadcast_to(lb, [B, S, n_ul])
+            ub_S = tf.broadcast_to(ub, [B, S, n_ul])
+
+            ul_subs_exp = tf.broadcast_to(tf.expand_dims(ul_subs, 1), [B, S, n_ul])
+            xi_exp = tf.broadcast_to(tf.expand_dims(xi, 1), [B, S, m.K, m.m_ul])
+            rho_exp = tf.broadcast_to(tf.expand_dims(rho, 1), [B, S, n_ul])
+            chi_exp = tf.broadcast_to(tf.expand_dims(chi, 1), [B, S, n_ul])
+
+            pos = lb_S + tf.random.uniform((B, S, n_ul), dtype=tf.float32) * (ub_S - lb_S)
+            k_inj = min(4, S)
+            pos = tf.concat([seeds[:, :k_inj, :], pos[:, k_inj:, :]], axis=1)
+            pos = tf.where(off_mask_S, pos, lb_S)
+
+            vel = tf.zeros((B, S, n_ul), dtype=tf.float32)
+            vmax = 0.1 * (ub_S - lb_S)
+
+            pbest_pos = pos
+            pbest_score = m.mpc_objective_tf(ul_subs_exp, pos, xi_exp, rho_exp, chi_exp)
+
+            min_idx = tf.argmin(pbest_score, axis=-1, output_type=tf.int32)
+            b_idx = tf.range(B, dtype=tf.int32)
+            b_coords = tf.stack([b_idx, min_idx], axis=-1)
+            gbest_score = tf.gather_nd(pbest_score, b_coords)
+            gbest_pos = tf.gather_nd(pbest_pos, b_coords)
+
+            w = float(self.algo.pso_inertia)
+            c1, c2 = float(self.algo.pso_c1), float(self.algo.pso_c2)
+
+            for t in range(max_iter):
+                r1 = tf.random.uniform((B, S, n_ul), dtype=tf.float32)
+                r2 = tf.random.uniform((B, S, n_ul), dtype=tf.float32)
+
+                gbest_exp = tf.expand_dims(gbest_pos, 1)
+                vel = w * vel + c1 * r1 * (pbest_pos - pos) + c2 * r2 * (gbest_exp - pos)
+                vel = tf.clip_by_value(vel, -vmax, vmax)
+                pos = pos + vel
+
+                outside = (pos < lb_S) | (pos > ub_S)
+                vel = tf.where(outside, -vel, vel)
+                pos = tf.where(off_mask_S, tf.clip_by_value(pos, lb_S, ub_S), lb_S)
+
+                scores = m.mpc_objective_tf(ul_subs_exp, pos, xi_exp, rho_exp, chi_exp)
+                better = scores < pbest_score
+                pbest_score = tf.where(better, scores, pbest_score)
+                pbest_pos = tf.where(tf.expand_dims(better, -1), pos, pbest_pos)
+
+                cur_min_idx = tf.argmin(pbest_score, axis=-1, output_type=tf.int32)
+                cur_coords = tf.stack([b_idx, cur_min_idx], axis=-1)
+                cur_min_score = tf.gather_nd(pbest_score, cur_coords)
+                cur_min_pos = tf.gather_nd(pbest_pos, cur_coords)
+
+                lead_better = cur_min_score < gbest_score
+                gbest_score = tf.where(lead_better, cur_min_score, gbest_score)
+                gbest_pos = tf.where(tf.expand_dims(lead_better, -1), cur_min_pos, gbest_pos)
+                w *= float(self.algo.pso_inertia_damp)
+
+            best_p_ul = tf.where(ul_subs >= 0, gbest_pos, float(m.p.p_min))
+            return gbest_score, best_p_ul
+
+        else:  # WOA
+            S = self.algo.n_agents_tpc
+            max_iter = self.algo.max_iter_tpc
+            off_mask_S = tf.broadcast_to(off_mask, [B, S, n_ul])
+            lb_S = tf.broadcast_to(lb, [B, S, n_ul])
+            ub_S = tf.broadcast_to(ub, [B, S, n_ul])
+
+            ul_subs_exp = tf.broadcast_to(tf.expand_dims(ul_subs, 1), [B, S, n_ul])
+            xi_exp = tf.broadcast_to(tf.expand_dims(xi, 1), [B, S, m.K, m.m_ul])
+            rho_exp = tf.broadcast_to(tf.expand_dims(rho, 1), [B, S, n_ul])
+            chi_exp = tf.broadcast_to(tf.expand_dims(chi, 1), [B, S, n_ul])
+
+            pos = lb_S + tf.random.uniform((B, S, n_ul), dtype=tf.float32) * (ub_S - lb_S)
+            k_inj = min(4, S)
+            pos = tf.concat([seeds[:, :k_inj, :], pos[:, k_inj:, :]], axis=1)
+            pos = tf.where(off_mask_S, pos, lb_S)
+
+            scores = m.mpc_objective_tf(ul_subs_exp, pos, xi_exp, rho_exp, chi_exp)
+            min_idx = tf.argmin(scores, axis=-1, output_type=tf.int32)
+            b_idx = tf.range(B, dtype=tf.int32)
+            b_coords = tf.stack([b_idx, min_idx], axis=-1)
+            leader_score = tf.gather_nd(scores, b_coords)
+            leader_pos = tf.gather_nd(pos, b_coords)
+
+            b_idx_rep = tf.repeat(b_idx[:, None], S, axis=1)
+
+            for t in range(max_iter):
+                pos = tf.where(off_mask_S, tf.clip_by_value(pos, lb_S, ub_S), lb_S)
+                scores = m.mpc_objective_tf(ul_subs_exp, pos, xi_exp, rho_exp, chi_exp)
+
+                cur_min_idx = tf.argmin(scores, axis=-1, output_type=tf.int32)
+                cur_coords = tf.stack([b_idx, cur_min_idx], axis=-1)
+                cur_score = tf.gather_nd(scores, cur_coords)
+                cur_pos = tf.gather_nd(pos, cur_coords)
+
+                better = cur_score < leader_score
+                leader_score = tf.where(better, cur_score, leader_score)
+                leader_pos = tf.where(tf.expand_dims(better, -1), cur_pos, leader_pos)
+
+                a = 2.0 - 2.0 * float(t) / float(max_iter)
+                a2 = -1.0 - float(t) / float(max_iter)
+
+                r1 = tf.random.uniform((B, S, 1), dtype=tf.float32)
+                r2 = tf.random.uniform((B, S, 1), dtype=tf.float32)
+                A = 2.0 * a * r1 - a
+                C = 2.0 * r2
+                l = (a2 - 1.0) * tf.random.uniform((B, S, 1), dtype=tf.float32) + 1.0
+                p = tf.random.uniform((B, S, 1), dtype=tf.float32)
+
+                rand_s = tf.random.uniform((B, S), minval=0, maxval=S, dtype=tf.int32)
+                rand_coords = tf.stack([b_idx_rep, rand_s], axis=-1)
+                rand_agents = tf.gather_nd(pos, rand_coords)
+
+                d_rand = tf.abs(C * rand_agents - pos)
+                pos_explore = rand_agents - A * d_rand
+
+                leader_exp = tf.expand_dims(leader_pos, 1)
+                d_lead = tf.abs(C * leader_exp - pos)
+                pos_encircle = leader_exp - A * d_lead
+
+                pos_spiral = tf.abs(leader_exp - pos) * tf.exp(l) * tf.cos(2.0 * np.pi * l) + leader_exp
+                pos_non_spiral = tf.where(tf.abs(A) >= 1.0, pos_explore, pos_encircle)
+                pos = tf.where(p < 0.5, pos_non_spiral, pos_spiral)
+
+            best_p_ul = tf.where(ul_subs >= 0, leader_pos, float(m.p.p_min))
+            return leader_score, best_p_ul
+
+    def solve_dl_tpc_batch(
+        self,
+        dl_subs: tf.Tensor,
+        ul_subs: tf.Tensor,
+        p_ul: tf.Tensor,
+    ) -> tuple[tf.Tensor, tf.Tensor]:
+        m = self.model
+        B = tf.shape(dl_subs)[0]
+        n_dl = m.n_dl
+        if n_dl == 0:
+            return tf.zeros([B], dtype=tf.float32), tf.zeros([B, 0], dtype=tf.float32)
+
+        lb_dl, ub_dl = m.dl_power_bounds_tf(dl_subs)
+        fallback = m.equal_split_dl_power_tf(dl_subs)
+
+        s1 = ub_dl
+        s2 = 0.5 * (lb_dl + ub_dl)
+        s3 = lb_dl + 0.1 * (ub_dl - lb_dl)
+        s4 = lb_dl
+        q_seeds = tf.stack([s1, s2, s3, s4], axis=1)
+
+        if self.tpc_name in ("PGD", "MULTI_PGD"):
+            k_seeds = 4
+            dl_subs_exp = tf.broadcast_to(tf.expand_dims(dl_subs, 1), [B, k_seeds, m.m_dl])
+            ul_subs_exp = tf.broadcast_to(tf.expand_dims(ul_subs, 1), [B, k_seeds, m.n_ul])
+            p_ul_exp = tf.broadcast_to(tf.expand_dims(p_ul, 1), [B, k_seeds, m.n_ul])
+            lb_exp = tf.broadcast_to(tf.expand_dims(lb_dl, 1), [B, k_seeds, n_dl])
+            ub_exp = tf.broadcast_to(tf.expand_dims(ub_dl, 1), [B, k_seeds, n_dl])
+
+            pos_dl = tf.clip_by_value(q_seeds, lb_exp, ub_exp)
+            lr = self.algo.lr_pgd
+            beta1, beta2, eps = 0.9, 0.999, 1e-8
+            m_mom = tf.zeros_like(pos_dl)
+            v_mom = tf.zeros_like(pos_dl)
+
+            for t in range(self.algo.max_iter_pgd):
+                pos_var = tf.clip_by_value(pos_dl, lb_exp, ub_exp)
+                with tf.GradientTape() as tape:
+                    tape.watch(pos_var)
+                    losses = -m.dl_objective_tf(dl_subs_exp, pos_var, ul_subs_exp, p_ul_exp)
+                    tot_loss = tf.reduce_sum(losses)
+
+                grads = tape.gradient(tot_loss, pos_var)
+                grads = tf.where(tf.math.is_finite(grads), grads, 0.0)
+                grads = tf.clip_by_norm(grads, clip_norm=10.0, axes=[-1])
+
+                t_step = float(t + 1)
+                m_mom = beta1 * m_mom + (1.0 - beta1) * grads
+                v_mom = beta2 * v_mom + (1.0 - beta2) * tf.square(grads)
+                m_hat = m_mom / (1.0 - beta1 ** t_step)
+                v_hat = v_mom / (1.0 - beta2 ** t_step)
+                pos_dl = pos_var - lr * m_hat / (tf.sqrt(v_hat) + eps)
+                pos_dl = tf.clip_by_value(pos_dl, lb_exp, ub_exp)
+
+            final_losses = -m.dl_objective_tf(dl_subs_exp, pos_dl, ul_subs_exp, p_ul_exp)
+            best_seed_idx = tf.argmin(final_losses, axis=-1, output_type=tf.int32)
+            b_coords = tf.stack([tf.range(B, dtype=tf.int32), best_seed_idx], axis=-1)
+            leader_score_dl = tf.gather_nd(final_losses, b_coords)
+            leader_pos_dl = tf.gather_nd(pos_dl, b_coords)
+
+        elif self.tpc_name == "PSO":
+            S = self.algo.n_agents_tpc
+            max_iter = self.algo.max_iter_tpc
+            dl_subs_exp = tf.broadcast_to(tf.expand_dims(dl_subs, 1), [B, S, m.m_dl])
+            ul_subs_exp = tf.broadcast_to(tf.expand_dims(ul_subs, 1), [B, S, m.n_ul])
+            p_ul_exp = tf.broadcast_to(tf.expand_dims(p_ul, 1), [B, S, m.n_ul])
+            lb_exp = tf.broadcast_to(tf.expand_dims(lb_dl, 1), [B, S, n_dl])
+            ub_exp = tf.broadcast_to(tf.expand_dims(ub_dl, 1), [B, S, n_dl])
+
+            pos_dl = lb_exp + tf.random.uniform((B, S, n_dl), dtype=tf.float32) * (ub_exp - lb_exp)
+            k_inj = min(4, S)
+            pos_dl = tf.concat([q_seeds[:, :k_inj, :], pos_dl[:, k_inj:, :]], axis=1)
+            pos_dl = tf.clip_by_value(pos_dl, lb_exp, ub_exp)
+
+            vel = tf.zeros((B, S, n_dl), dtype=tf.float32)
+            vmax = 0.1 * (ub_exp - lb_exp)
+
+            pbest_pos = pos_dl
+            pbest_score = -m.dl_objective_tf(dl_subs_exp, pos_dl, ul_subs_exp, p_ul_exp)
+
+            min_idx = tf.argmin(pbest_score, axis=-1, output_type=tf.int32)
+            b_idx = tf.range(B, dtype=tf.int32)
+            b_coords = tf.stack([b_idx, min_idx], axis=-1)
+            leader_score_dl = tf.gather_nd(pbest_score, b_coords)
+            leader_pos_dl = tf.gather_nd(pbest_pos, b_coords)
+
+            w = float(self.algo.pso_inertia)
+            c1, c2 = float(self.algo.pso_c1), float(self.algo.pso_c2)
+
+            for t in range(max_iter):
+                r1 = tf.random.uniform((B, S, n_dl), dtype=tf.float32)
+                r2 = tf.random.uniform((B, S, n_dl), dtype=tf.float32)
+
+                gbest_exp = tf.expand_dims(leader_pos_dl, 1)
+                vel = w * vel + c1 * r1 * (pbest_pos - pos_dl) + c2 * r2 * (gbest_exp - pos_dl)
+                vel = tf.clip_by_value(vel, -vmax, vmax)
+                pos_dl = pos_dl + vel
+
+                outside = (pos_dl < lb_exp) | (pos_dl > ub_exp)
+                vel = tf.where(outside, -vel, vel)
+                pos_dl = tf.clip_by_value(pos_dl, lb_exp, ub_exp)
+
+                scores = -m.dl_objective_tf(dl_subs_exp, pos_dl, ul_subs_exp, p_ul_exp)
+                better = scores < pbest_score
+                pbest_score = tf.where(better, scores, pbest_score)
+                pbest_pos = tf.where(tf.expand_dims(better, -1), pos_dl, pbest_pos)
+
+                cur_min_idx = tf.argmin(pbest_score, axis=-1, output_type=tf.int32)
+                cur_coords = tf.stack([b_idx, cur_min_idx], axis=-1)
+                cur_min_score = tf.gather_nd(pbest_score, cur_coords)
+                cur_min_pos = tf.gather_nd(pbest_pos, cur_coords)
+
+                lead_better = cur_min_score < leader_score_dl
+                leader_score_dl = tf.where(lead_better, cur_min_score, leader_score_dl)
+                leader_pos_dl = tf.where(tf.expand_dims(lead_better, -1), cur_min_pos, leader_pos_dl)
+                w *= float(self.algo.pso_inertia_damp)
+
+        else:  # WOA
+            S = self.algo.n_agents_tpc
+            max_iter = self.algo.max_iter_tpc
+            dl_subs_exp = tf.broadcast_to(tf.expand_dims(dl_subs, 1), [B, S, m.m_dl])
+            ul_subs_exp = tf.broadcast_to(tf.expand_dims(ul_subs, 1), [B, S, m.n_ul])
+            p_ul_exp = tf.broadcast_to(tf.expand_dims(p_ul, 1), [B, S, m.n_ul])
+            lb_exp = tf.broadcast_to(tf.expand_dims(lb_dl, 1), [B, S, n_dl])
+            ub_exp = tf.broadcast_to(tf.expand_dims(ub_dl, 1), [B, S, n_dl])
+
+            pos_dl = lb_exp + tf.random.uniform((B, S, n_dl), dtype=tf.float32) * (ub_exp - lb_exp)
+            k_inj = min(4, S)
+            pos_dl = tf.concat([q_seeds[:, :k_inj, :], pos_dl[:, k_inj:, :]], axis=1)
+            pos_dl = tf.clip_by_value(pos_dl, lb_exp, ub_exp)
+
+            scores_dl = -m.dl_objective_tf(dl_subs_exp, pos_dl, ul_subs_exp, p_ul_exp)
+            min_idx = tf.argmin(scores_dl, axis=-1, output_type=tf.int32)
+            b_idx = tf.range(B, dtype=tf.int32)
+            b_coords = tf.stack([b_idx, min_idx], axis=-1)
+            leader_score_dl = tf.gather_nd(scores_dl, b_coords)
+            leader_pos_dl = tf.gather_nd(pos_dl, b_coords)
+
+            b_idx_rep = tf.repeat(b_idx[:, None], S, axis=1)
+
+            for t in range(max_iter):
+                pos_dl = tf.clip_by_value(pos_dl, lb_exp, ub_exp)
+                scores_dl = -m.dl_objective_tf(dl_subs_exp, pos_dl, ul_subs_exp, p_ul_exp)
+
+                cur_min_idx = tf.argmin(scores_dl, axis=-1, output_type=tf.int32)
+                cur_coords = tf.stack([b_idx, cur_min_idx], axis=-1)
+                cur_score = tf.gather_nd(scores_dl, cur_coords)
+                cur_pos = tf.gather_nd(pos_dl, cur_coords)
+
+                better = cur_score < leader_score_dl
+                leader_score_dl = tf.where(better, cur_score, leader_score_dl)
+                leader_pos_dl = tf.where(tf.expand_dims(better, -1), cur_pos, leader_pos_dl)
+
+                a = 2.0 - 2.0 * float(t) / float(max_iter)
+                a2 = -1.0 - float(t) / float(max_iter)
+
+                r1 = tf.random.uniform((B, S, 1), dtype=tf.float32)
+                r2 = tf.random.uniform((B, S, 1), dtype=tf.float32)
+                A = 2.0 * a * r1 - a
+                C = 2.0 * r2
+                l = (a2 - 1.0) * tf.random.uniform((B, S, 1), dtype=tf.float32) + 1.0
+                p = tf.random.uniform((B, S, 1), dtype=tf.float32)
+
+                rand_s = tf.random.uniform((B, S), minval=0, maxval=S, dtype=tf.int32)
+                rand_coords = tf.stack([b_idx_rep, rand_s], axis=-1)
+                rand_agents = tf.gather_nd(pos_dl, rand_coords)
+
+                d_rand = tf.abs(C * rand_agents - pos_dl)
+                pos_explore = rand_agents - A * d_rand
+
+                leader_exp = tf.expand_dims(leader_pos_dl, 1)
+                d_lead = tf.abs(C * leader_exp - pos_dl)
+                pos_encircle = leader_exp - A * d_lead
+
+                pos_spiral = tf.abs(leader_exp - pos_dl) * tf.exp(l) * tf.cos(2.0 * np.pi * l) + leader_exp
+                pos_non_spiral = tf.where(tf.abs(A) >= 1.0, pos_explore, pos_encircle)
+                pos_dl = tf.where(p < 0.5, pos_non_spiral, pos_spiral)
+
+        # Compare with equal-split fallback on GPU:
+        score_fb = -m.dl_objective_tf(dl_subs, fallback, ul_subs, p_ul)
+        use_fb = score_fb < leader_score_dl
+        best_q_dl = tf.where(tf.expand_dims(use_fb, -1), fallback, leader_pos_dl)
+        best_score_dl = tf.where(use_fb, score_fb, leader_score_dl)
+        return best_score_dl, best_q_dl
+
+    def evaluate_batch(self, assocs: tf.Tensor) -> tuple[tf.Tensor, tf.Tensor, tf.Tensor]:
+        """Evaluate a batch of candidate association matrices (B, rows, k) on GPU."""
+        m = self.model
+        B = tf.shape(assocs)[0]
+        penalties = scheme_penalty_tf(self.scheme, assocs, m.n_ul)
+
+        ul_subs, dl_subs = m.decode_tf(assocs)
+        xi_ref = m.cochannel_at_sbs_tf(dl_subs, m.equal_split_dl_power_tf(dl_subs))
+        rho0 = tf.cast(ul_subs >= 0, tf.float32)
+        chi0 = tf.ones_like(rho0)
+
+        _, p_ul = self.solve_mpc_batch(ul_subs, xi_ref, rho0, chi0)
+        _, q_dl = self.solve_dl_tpc_batch(dl_subs, ul_subs, p_ul)
+
+        utils = m.utility_tf(assocs, p_ul, q_dl)
+        utils = tf.where(penalties > 0.0, -penalties, utils)
+        return utils, p_ul, q_dl
+
+    # ------------------------------------------------------------------ #
+    # Fitness Evaluation of Single Candidates (Fallback/Compatibility)
+    # ------------------------------------------------------------------ #
+    def evaluate(self, assoc: tf.Tensor, assoc_np: np.ndarray | None = None) -> _InnerTF:
+        m = self.model
+        scheme_pen_tf = scheme_penalty_tf(self.scheme, assoc, m.n_ul)
+        if float(scheme_pen_tf) > 0.0:
+            return _InnerTF(
+                utility=float(-scheme_pen_tf),
+                p_ul_tf=tf.fill([m.n_ul], float(m.p.p_min)),
+                q_dl_tf=tf.zeros(m.n_dl, dtype=tf.float32),
+                utility_tf=-scheme_pen_tf,
+            )
+
+        self.n_inner_calls += 1
+
+        ul_sub, dl_sub = m.decode_tf(assoc)
+        xi_ref = m.cochannel_at_sbs_tf(dl_sub, m.equal_split_dl_power_tf(dl_sub))
+        rho0 = tf.cast(ul_sub >= 0, tf.float32)
+        chi0 = tf.ones_like(rho0)
+
+        _, p_ul = self.solve_mpc(ul_sub, xi_ref, rho0, chi0)
+        _, q_dl = self.solve_dl_tpc(dl_sub, ul_sub, p_ul)
+
+        util_tf = m.utility_tf(assoc, p_ul, q_dl)
+        return _InnerTF(
+            utility=float(util_tf),
+            p_ul_tf=p_ul,
+            q_dl_tf=q_dl,
+            utility_tf=util_tf,
+        )
+
+    # ------------------------------------------------------------------ #
+    # Algorithm 3 (Outer BWOA Search with Nested Batching on GPU)
+    # ------------------------------------------------------------------ #
+    def solve(self) -> SolutionTF:
+        m, cfg, rng = self.model, self.algo, self.rng
+        start = time.perf_counter()
+
+        rows, k = m.assoc_shape
+        if rows == 0:
+            return SolutionTF(0.0, np.zeros((0, k), dtype=np.int8), np.zeros(0),
+                              np.zeros(0), np.zeros(0), np.zeros(0))
+
+        self.eval_cache.clear()
+        self.n_cache_hits = 0
+        self.n_flips = 0
+        use_cache = getattr(cfg, "enable_cache", True)
+
+        # Initialize population on GPU
+        pop_np = self.scheme.seed(m.assoc_shape, m.n_ul, m.m_dl, rng, cfg.n_agents_bwoa).astype(np.float32)
+        pop = tf.constant(pop_np, dtype=tf.float32)
+        pop = repair_population_tf(pop, m.n_ul, m.m_dl, k)
+
+        best_score_tf = tf.constant(-np.inf, dtype=tf.float32)
+        best_assoc_tf = pop[0]
+        best_p_ul_tf = tf.fill([m.n_ul], float(m.p.p_min))
+        best_q_dl_tf = tf.zeros(m.n_dl, dtype=tf.float32)
+        curve, stalled = [], 0
+
+        for it in range(cfg.max_iter_bwoa):
+            # Batch repair of all outer agents directly on GPU
+            pop = repair_population_tf(pop, m.n_ul, m.m_dl, k)
+
+            # Deduplicated Tabu Cache lookup: find unique cache misses
+            keys = [get_tabu_key(pop[s]) for s in range(pop.shape[0])]
+            miss_indices = []
+            miss_keys = []
+            seen_miss = set()
+
+            for s, key in enumerate(keys):
+                if use_cache and key in self.eval_cache:
+                    self.n_cache_hits += 1
+                else:
+                    if key not in seen_miss:
+                        seen_miss.add(key)
+                        miss_indices.append(s)
+                        miss_keys.append(key)
+
+            # Evaluate all unique misses in ONE NESTED GPU BATCH
+            if miss_indices:
+                miss_assocs = tf.gather(pop, miss_indices)
+                batch_utils, batch_p_ul, batch_q_dl = self.evaluate_batch(miss_assocs)
+                self.n_inner_calls += len(miss_indices)
+
+                for idx, key in enumerate(miss_keys):
+                    self.eval_cache[key] = _InnerTF(
+                        utility=float(batch_utils[idx]),
+                        p_ul_tf=batch_p_ul[idx],
+                        q_dl_tf=batch_q_dl[idx],
+                        utility_tf=batch_utils[idx],
+                    )
+
+            # Retrieve candidate evaluations for all agents
+            for s, key in enumerate(keys):
+                cached = self.eval_cache[key]
+                if cached.utility > float(best_score_tf):
+                    best_score_tf = cached.utility_tf
+                    best_assoc_tf = pop[s]
+                    best_p_ul_tf = cached.p_ul_tf
+                    best_q_dl_tf = cached.q_dl_tf
+
+            cur_best = float(best_score_tf)
+            prev = curve[-1] if curve else -np.inf
+            curve.append(cur_best)
+            stalled = stalled + 1 if abs(cur_best - prev) < cfg.tol_bwoa else 0
+            if stalled >= cfg.patience_bwoa:
+                break
+
+            # Vectorized BWOA position update step ON GPU
+            leader = best_assoc_tf
+            t_tf = tf.constant(it, dtype=tf.int32)
+            max_iter_tf = tf.constant(cfg.max_iter_bwoa, dtype=tf.int32)
+            pop = bwoa_step_tf(pop, leader, t_tf, max_iter_tf, slope=cfg.sigmoid_slope)
+
+        # Compute final states on GPU
+        ul_sub, dl_sub = m.decode_tf(best_assoc_tf)
+        xi = m.cochannel_at_sbs_tf(dl_sub, best_q_dl_tf)
+        rates = m.ul_rates_tf(ul_sub, best_p_ul_tf, xi, dl_sub)
+        rho, chi, f_alloc = m.iscc_allocate_tf(ul_sub, rates, best_p_ul_tf)
+
+        return SolutionTF(
+            utility=float(best_score_tf),
+            assoc=best_assoc_tf.numpy().astype(np.int8),
+            ul_power=best_p_ul_tf.numpy(),
+            dl_power=best_q_dl_tf.numpy(),
+            server_alloc=f_alloc.numpy(),
+            curve=np.asarray(curve, dtype=np.float32),
+            runtime=time.perf_counter() - start,
+            n_inner_calls=self.n_inner_calls,
+            rho=rho.numpy(),
+            chi=chi.numpy(),
+            n_cache_hits=self.n_cache_hits,
+            n_flips=self.n_flips,
+        )
+
+
+def solve_block_tf(
+    model: SystemModelTF,
+    rng: np.random.Generator,
+    tpc: str = "PGD",
+    scheme: str = "MF-SIC",
+    algo: AlgorithmParams | None = None,
+) -> SolutionTF:
+    return HybridSolverTF(model, rng, algo=algo, tpc=tpc, scheme=scheme).solve()

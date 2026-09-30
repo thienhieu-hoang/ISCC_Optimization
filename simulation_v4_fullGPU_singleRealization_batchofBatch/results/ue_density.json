@@ -1,0 +1,379 @@
+{
+  "x_label": "Active-UE Density [$\\times 10^{-6}/m^2$]",
+  "x": [
+    4.0
+  ],
+  "data": {
+    "WOA-BWOA": {
+      "utility": [
+        3.784385025501251
+      ],
+      "offload_ratio": [
+        1.0
+      ],
+      "total_delay": [
+        1.31113600730896
+      ],
+      "total_energy": [
+        0.3527882695198059
+      ],
+      "ul_utility": [
+        3.2315354347229004
+      ],
+      "dl_utility": [
+        0.5528495907783508
+      ],
+      "sum_dl_rate": [
+        55284959.07783508
+      ],
+      "runtime": [
+        17.622005599783733
+      ],
+      "n_offloading": [
+        4
+      ],
+      "n_ul_ues": [
+        4
+      ],
+      "n_dl_ues": [
+        3
+      ],
+      "mean_accuracy": [
+        0.9731776118278503
+      ],
+      "mean_retention": [
+        1.0
+      ],
+      "mean_split": [
+        1.0
+      ],
+      "mean_delay": [
+        0.32778400182724
+      ],
+      "mean_norm_delay": [
+        0.28704750537872314
+      ],
+      "admissible_ratio": [
+        1.0
+      ]
+    },
+    "IWOA-BWOA": {
+      "utility": [
+        3.777082324028015
+      ],
+      "offload_ratio": [
+        1.0
+      ],
+      "total_delay": [
+        1.180633306503296
+      ],
+      "total_energy": [
+        0.4248112142086029
+      ],
+      "ul_utility": [
+        3.2685203552246094
+      ],
+      "dl_utility": [
+        0.5085619688034058
+      ],
+      "sum_dl_rate": [
+        50856196.880340576
+      ],
+      "runtime": [
+        19.162412399891764
+      ],
+      "n_offloading": [
+        4
+      ],
+      "n_ul_ues": [
+        4
+      ],
+      "n_dl_ues": [
+        3
+      ],
+      "mean_accuracy": [
+        0.9731776118278503
+      ],
+      "mean_retention": [
+        1.0
+      ],
+      "mean_split": [
+        1.0
+      ],
+      "mean_delay": [
+        0.295158326625824
+      ],
+      "mean_norm_delay": [
+        0.2542320489883423
+      ],
+      "admissible_ratio": [
+        1.0
+      ]
+    },
+    "PSO-BWOA": {
+      "utility": [
+        3.659932643175125
+      ],
+      "offload_ratio": [
+        1.0
+      ],
+      "total_delay": [
+        1.422738790512085
+      ],
+      "total_energy": [
+        0.4855736494064331
+      ],
+      "ul_utility": [
+        3.1857128143310547
+      ],
+      "dl_utility": [
+        0.47421982884407043
+      ],
+      "sum_dl_rate": [
+        47421982.88440704
+      ],
+      "runtime": [
+        13.009370499989018
+      ],
+      "n_offloading": [
+        4
+      ],
+      "n_ul_ues": [
+        4
+      ],
+      "n_dl_ues": [
+        3
+      ],
+      "mean_accuracy": [
+        0.9731776118278503
+      ],
+      "mean_retention": [
+        1.0
+      ],
+      "mean_split": [
+        1.0
+      ],
+      "mean_delay": [
+        0.35568469762802124
+      ],
+      "mean_norm_delay": [
+        0.3133775591850281
+      ],
+      "admissible_ratio": [
+        1.0
+      ]
+    },
+    "ARJOA": {
+      "utility": [
+        3.830166816711426
+      ],
+      "offload_ratio": [
+        1.0
+      ],
+      "total_delay": [
+        1.0706872940063477
+      ],
+      "total_energy": [
+        0.3742259740829468
+      ],
+      "ul_utility": [
+        3.301947832107544
+      ],
+      "dl_utility": [
+        0.5282189846038818
+      ],
+      "sum_dl_rate": [
+        52821898.46038818
+      ],
+      "runtime": [
+        13.630455499980599
+      ],
+      "n_offloading": [
+        4
+      ],
+      "n_ul_ues": [
+        4
+      ],
+      "n_dl_ues": [
+        3
+      ],
+      "mean_accuracy": [
+        0.9731776118278503
+      ],
+      "mean_retention": [
+        1.0
+      ],
+      "mean_split": [
+        1.0
+      ],
+      "mean_delay": [
+        0.2676718235015869
+      ],
+      "mean_norm_delay": [
+        0.23269407451152802
+      ],
+      "admissible_ratio": [
+        1.0
+      ]
+    },
+    "IOJOA": {
+      "utility": [
+        2.839112162590027
+      ],
+      "offload_ratio": [
+        0.5
+      ],
+      "total_delay": [
+        1.985755205154419
+      ],
+      "total_energy": [
+        7.993857383728027
+      ],
+      "ul_utility": [
+        2.2950351238250732
+      ],
+      "dl_utility": [
+        0.5440770387649536
+      ],
+      "sum_dl_rate": [
+        54407703.87649536
+      ],
+      "runtime": [
+        11.443182500079274
+      ],
+      "n_offloading": [
+        2
+      ],
+      "n_ul_ues": [
+        4
+      ],
+      "n_dl_ues": [
+        3
+      ],
+      "mean_accuracy": [
+        0.9581103324890137
+      ],
+      "mean_retention": [
+        0.8811654448509216
+      ],
+      "mean_split": [
+        1.0
+      ],
+      "mean_delay": [
+        0.49643880128860474
+      ],
+      "mean_norm_delay": [
+        0.4639999270439148
+      ],
+      "admissible_ratio": [
+        1.0
+      ]
+    },
+    "FDMA": {
+      "utility": [
+        2.864913582801819
+      ],
+      "offload_ratio": [
+        0.5
+      ],
+      "total_delay": [
+        2.0904414653778076
+      ],
+      "total_energy": [
+        6.526206016540527
+      ],
+      "ul_utility": [
+        2.314204454421997
+      ],
+      "dl_utility": [
+        0.5507091283798218
+      ],
+      "sum_dl_rate": [
+        55070912.83798218
+      ],
+      "runtime": [
+        11.641546200029552
+      ],
+      "n_offloading": [
+        2
+      ],
+      "n_ul_ues": [
+        4
+      ],
+      "n_dl_ues": [
+        3
+      ],
+      "mean_accuracy": [
+        0.9578087329864502
+      ],
+      "mean_retention": [
+        0.8736411929130554
+      ],
+      "mean_split": [
+        1.0
+      ],
+      "mean_delay": [
+        0.5226103663444519
+      ],
+      "mean_norm_delay": [
+        0.4550487995147705
+      ],
+      "admissible_ratio": [
+        1.0
+      ]
+    },
+    "ALCA": {
+      "utility": [
+        1.7226354479789734
+      ],
+      "offload_ratio": [
+        0.0
+      ],
+      "total_delay": [
+        3.7036430835723877
+      ],
+      "total_energy": [
+        13.254781723022461
+      ],
+      "ul_utility": [
+        1.1625299453735352
+      ],
+      "dl_utility": [
+        0.5601055026054382
+      ],
+      "sum_dl_rate": [
+        56010550.26054382
+      ],
+      "runtime": [
+        19.684981799917296
+      ],
+      "n_offloading": [
+        0
+      ],
+      "n_ul_ues": [
+        4
+      ],
+      "n_dl_ues": [
+        3
+      ],
+      "mean_accuracy": [
+        0.9469416737556458
+      ],
+      "mean_retention": [
+        0.7940617203712463
+      ],
+      "mean_split": [
+        NaN
+      ],
+      "mean_delay": [
+        0.9259107708930969
+      ],
+      "mean_norm_delay": [
+        0.7991976141929626
+      ],
+      "admissible_ratio": [
+        1.0
+      ]
+    }
+  }
+}
