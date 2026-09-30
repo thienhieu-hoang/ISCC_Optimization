@@ -1,0 +1,94 @@
+{
+  "parameter": "Active-UE Density [$\\times 10^{-6}/m^2$]",
+  "n_realizations": 8,
+  "points": {
+    "5": {
+      "WOA-BWOA": {
+        "utility": 1.9945,
+        "offloaded_pct": 100.0,
+        "runtime_s": 336.34,
+        "summary": "U = +1.9945   offloaded = 100.0 %   t = 336.34 s"
+      },
+      "IWOA-BWOA": {
+        "utility": 1.9963,
+        "offloaded_pct": 100.0,
+        "runtime_s": 307.75,
+        "summary": "U = +1.9963   offloaded = 100.0 %   t = 307.75 s"
+      },
+      "PSO-BWOA": {
+        "utility": 1.9977,
+        "offloaded_pct": 100.0,
+        "runtime_s": 347.25,
+        "summary": "U = +1.9977   offloaded = 100.0 %   t = 347.25 s"
+      },
+      "ARJOA": {
+        "utility": 1.9984,
+        "offloaded_pct": 100.0,
+        "runtime_s": 139.77,
+        "summary": "U = +1.9984   offloaded = 100.0 %   t = 139.77 s"
+      },
+      "IOJOA": {
+        "utility": 1.6125,
+        "offloaded_pct": 64.6,
+        "runtime_s": 105.85,
+        "summary": "U = +1.6125   offloaded = 64.6 %   t = 105.85 s"
+      },
+      "FDMA": {
+        "utility": 2.0008,
+        "offloaded_pct": 100.0,
+        "runtime_s": 110.04,
+        "summary": "U = +2.0008   offloaded = 100.0 %   t = 110.04 s"
+      },
+      "ALCA": {
+        "utility": 1.0655,
+        "offloaded_pct": 0.0,
+        "runtime_s": 54.73,
+        "summary": "U = +1.0655   offloaded = 0.0 %   t = 54.73 s"
+      }
+    },
+    "10": {
+      "WOA-BWOA": {
+        "utility": 4.2886,
+        "offloaded_pct": 96.9,
+        "runtime_s": 2694.74,
+        "summary": "U = +4.2886   offloaded = 96.9 %   t = 2694.74 s"
+      },
+      "IWOA-BWOA": {
+        "utility": 4.2899,
+        "offloaded_pct": 96.9,
+        "runtime_s": 3151.43,
+        "summary": "U = +4.2899   offloaded = 96.9 %   t = 3151.43 s"
+      },
+      "PSO-BWOA": {
+        "utility": 4.288,
+        "offloaded_pct": 96.9,
+        "runtime_s": 3930.7,
+        "summary": "U = +4.2880   offloaded = 96.9 %   t = 3930.70 s"
+      },
+      "ARJOA": {
+        "utility": 4.3234,
+        "offloaded_pct": 100.0,
+        "runtime_s": 660.92,
+        "summary": "U = +4.3234   offloaded = 100.0 %   t = 660.92 s"
+      },
+      "IOJOA": {
+        "utility": 3.1794,
+        "offloaded_pct": 46.2,
+        "runtime_s": 516.39,
+        "summary": "U = +3.1794   offloaded = 46.2 %   t = 516.39 s"
+      },
+      "FDMA": {
+        "utility": 3.2388,
+        "offloaded_pct": 46.2,
+        "runtime_s": 336.39,
+        "summary": "U = +3.2388   offloaded = 46.2 %   t = 336.39 s"
+      },
+      "ALCA": {
+        "utility": 2.1323,
+        "offloaded_pct": 0.0,
+        "runtime_s": 326.84,
+        "summary": "U = +2.1323   offloaded = 0.0 %   t = 326.84 s"
+      }
+    }
+  }
+}

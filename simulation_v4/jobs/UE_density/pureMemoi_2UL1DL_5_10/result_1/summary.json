@@ -1,0 +1,70 @@
+{
+  "parameter": "Active-UE Density [$\\times 10^{-6}/m^2$]",
+  "n_realizations": 8,
+  "points": {
+    "5": {
+      "WOA-BWOA": {
+        "utility": 2.8132,
+        "offloaded_pct": 93.8,
+        "runtime_s": 246.51,
+        "summary": "U = +2.8132   offloaded = 93.8 %   t = 246.51 s"
+      },
+      "IWOA-BWOA": {
+        "utility": 2.8124,
+        "offloaded_pct": 93.8,
+        "runtime_s": 294.72,
+        "summary": "U = +2.8124   offloaded = 93.8 %   t = 294.72 s"
+      },
+      "PSO-BWOA": {
+        "utility": 2.8135,
+        "offloaded_pct": 93.8,
+        "runtime_s": 274.77,
+        "summary": "U = +2.8135   offloaded = 93.8 %   t = 274.77 s"
+      },
+      "ARJOA": {
+        "utility": 2.9209,
+        "offloaded_pct": 100.0,
+        "runtime_s": 98.76,
+        "summary": "U = +2.9209   offloaded = 100.0 %   t = 98.76 s"
+      },
+      "IOJOA": {
+        "utility": 1.923,
+        "offloaded_pct": 43.8,
+        "runtime_s": 46.49,
+        "summary": "U = +1.9230   offloaded = 43.8 %   t = 46.49 s"
+      },
+      "FDMA": {
+        "utility": 2.8145,
+        "offloaded_pct": 93.8,
+        "runtime_s": 117.25,
+        "summary": "U = +2.8145   offloaded = 93.8 %   t = 117.25 s"
+      },
+      "ALCA": {
+        "utility": 1.0458,
+        "offloaded_pct": 0.0,
+        "runtime_s": 4.78,
+        "summary": "U = +1.0458   offloaded = 0.0 %   t = 4.78 s"
+      }
+    },
+    "10": {
+      "WOA-BWOA": {
+        "utility": 5.2878,
+        "offloaded_pct": 96.9,
+        "runtime_s": 3592.69,
+        "summary": "U = +5.2878   offloaded = 96.9 %   t = 3592.69 s"
+      },
+      "IWOA-BWOA": {
+        "utility": 5.2994,
+        "offloaded_pct": 96.9,
+        "runtime_s": 4858.64,
+        "summary": "U = +5.2994   offloaded = 96.9 %   t = 4858.64 s"
+      },
+      "PSO-BWOA": {
+        "utility": 5.258,
+        "offloaded_pct": 96.9,
+        "runtime_s": 4832.57,
+        "summary": "U = +5.2580   offloaded = 96.9 %   t = 4832.57 s"
+      }
+    }
+  }
+}
