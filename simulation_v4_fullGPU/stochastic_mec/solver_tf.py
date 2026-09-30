@@ -1,4 +1,4 @@
-"""Algorithm 3: Batched BWOA Solver with TensorFlow."""
+"""Algorithm 3: Batched BWOA Solver with TensorFlow running on GPU."""
 
 from __future__ import annotations
 
@@ -17,57 +17,159 @@ from .system_tf import SolutionTF, SystemModelTF
 @dataclass
 class _InnerTF:
     utility: float
-    p_ul: np.ndarray
-    q_dl: np.ndarray
+    p_ul_tf: tf.Tensor
+    q_dl_tf: tf.Tensor
+    utility_tf: tf.Tensor
+    p_ul_np: np.ndarray | None = None
+    q_dl_np: np.ndarray | None = None
     pruned: bool = False
 
+    @property
+    def p_ul(self) -> np.ndarray:
+        if self.p_ul_np is None:
+            self.p_ul_np = self.p_ul_tf.numpy()
+        return self.p_ul_np
 
-def _repair_valid(assoc_np: np.ndarray, n_ul: int, m_dl: int, k: int, rng: np.random.Generator) -> np.ndarray:
-    """Ensure every row satisfies association constraints (UL: <=1, DL: ==1)."""
-    repaired = assoc_np.copy()
-    for row in range(n_ul):
-        chans = np.flatnonzero(repaired[row, :])
-        if chans.size > 1:
-            repaired[row, :] = 0
-            repaired[row, int(rng.choice(chans))] = 1
-    for m_idx in range(m_dl):
-        row = n_ul + m_idx
-        chans = np.flatnonzero(repaired[row, :])
-        if chans.size != 1:
-            repaired[row, :] = 0
-            repaired[row, int(rng.choice(chans)) if chans.size > 1 else int(rng.integers(k))] = 1
-    return repaired
+    @property
+    def q_dl(self) -> np.ndarray:
+        if self.q_dl_np is None:
+            self.q_dl_np = self.q_dl_tf.numpy()
+        return self.q_dl_np
 
 
-def _perturb_valid(assoc_np: np.ndarray, n_ul: int, m_dl: int, k: int, rng: np.random.Generator) -> np.ndarray:
-    """Make a valid 1-step move: reassign 1 random UE or DL UAV to a different subchannel."""
-    new_assoc = _repair_valid(assoc_np, n_ul, m_dl, k, rng)
+@tf.function
+def repair_valid_tf(assoc: tf.Tensor, n_ul: int, m_dl: int, k: int) -> tf.Tensor:
+    """Enforce physical association constraints on GPU tensor:
+    - UL UEs (rows 0 to n_ul-1): <= 1 subchannel (local computing if 0)
+    - DL UAVs (rows n_ul to n_ul+m_dl-1): == 1 subchannel
+    """
+    if k == 0:
+        return assoc
     rows = n_ul + m_dl
-    if rows == 0 or k == 0:
-        return new_assoc
+    if rows == 0:
+        return assoc
 
-    row = int(rng.integers(rows))
-    if row < n_ul:
-        current_chans = np.flatnonzero(new_assoc[row, :])
-        curr = int(current_chans[0]) if current_chans.size > 0 else -1
-        choices = [c for c in range(-1, k) if c != curr]
-        choice = int(rng.choice(choices))
-        new_assoc[row, :] = 0
-        if choice >= 0:
-            new_assoc[row, choice] = 1
-    else:
-        current_chans = np.flatnonzero(new_assoc[row, :])
-        curr = int(current_chans[0]) if current_chans.size > 0 else -1
-        choices = [c for c in range(k) if c != curr] if k > 1 else [0]
-        choice = int(rng.choice(choices))
-        new_assoc[row, :] = 0
-        new_assoc[row, choice] = 1
+    parts = []
+    if n_ul > 0:
+        ul_part = assoc[:n_ul]
+        ul_sum = tf.reduce_sum(ul_part, axis=-1, keepdims=True)
+        ul_noise = tf.random.uniform(tf.shape(ul_part), 0.0, 1e-4, dtype=tf.float32)
+        ul_choice = tf.argmax(ul_part * 10.0 + ul_noise, axis=-1)
+        ul_one_hot = tf.one_hot(ul_choice, depth=k, dtype=tf.float32)
+        repaired_ul = tf.where(ul_sum > 1.0, ul_one_hot, ul_part)
+        repaired_ul = tf.where(repaired_ul >= 0.5, 1.0, 0.0)
+        parts.append(repaired_ul)
 
-    return new_assoc
+    if m_dl > 0:
+        dl_part = assoc[n_ul:n_ul + m_dl]
+        dl_noise = tf.random.uniform(tf.shape(dl_part), 0.0, 1e-4, dtype=tf.float32)
+        dl_choice = tf.argmax(dl_part * 10.0 + dl_noise, axis=-1)
+        repaired_dl = tf.one_hot(dl_choice, depth=k, dtype=tf.float32)
+        parts.append(repaired_dl)
+
+    return tf.concat(parts, axis=0) if len(parts) > 1 else parts[0]
+
+
+@tf.function
+def repair_population_tf(pop: tf.Tensor, n_ul: int, m_dl: int, k: int) -> tf.Tensor:
+    """Batch repair of an entire population tensor (S, rows, k) on GPU."""
+    if k == 0:
+        return pop
+    parts = []
+    if n_ul > 0:
+        ul_part = pop[:, :n_ul, :]
+        ul_sum = tf.reduce_sum(ul_part, axis=-1, keepdims=True)
+        ul_noise = tf.random.uniform(tf.shape(ul_part), 0.0, 1e-4, dtype=tf.float32)
+        ul_choice = tf.argmax(ul_part * 10.0 + ul_noise, axis=-1)
+        ul_one_hot = tf.one_hot(ul_choice, depth=k, dtype=tf.float32)
+        repaired_ul = tf.where(ul_sum > 1.0, ul_one_hot, ul_part)
+        repaired_ul = tf.where(repaired_ul >= 0.5, 1.0, 0.0)
+        parts.append(repaired_ul)
+
+    if m_dl > 0:
+        dl_part = pop[:, n_ul:n_ul + m_dl, :]
+        dl_noise = tf.random.uniform(tf.shape(dl_part), 0.0, 1e-4, dtype=tf.float32)
+        dl_choice = tf.argmax(dl_part * 10.0 + dl_noise, axis=-1)
+        repaired_dl = tf.one_hot(dl_choice, depth=k, dtype=tf.float32)
+        parts.append(repaired_dl)
+
+    return tf.concat(parts, axis=1) if len(parts) > 1 else parts[0]
+
+
+@tf.function
+def perturb_valid_tf(assoc: tf.Tensor, n_ul: int, m_dl: int, k: int) -> tf.Tensor:
+    """Make a valid 1-step perturbation directly on GPU:
+    reassign 1 random UE or DL UAV to a different valid channel.
+    """
+    rows = n_ul + m_dl
+    if rows == 0 or k <= 1:
+        return repair_valid_tf(assoc, n_ul, m_dl, k)
+
+    row = tf.random.uniform([], minval=0, maxval=rows, dtype=tf.int32)
+    current_chan = tf.argmax(assoc[row], axis=-1, output_type=tf.int32)
+    has_chan = tf.reduce_sum(assoc[row]) > 0.5
+
+    shift = tf.random.uniform([], minval=1, maxval=k, dtype=tf.int32)
+    new_chan = (current_chan + shift) % k
+
+    is_ul = row < n_ul
+    turn_off = is_ul & has_chan & (tf.random.uniform([]) < 0.25)
+
+    new_row = tf.cond(
+        turn_off,
+        lambda: tf.zeros([k], dtype=tf.float32),
+        lambda: tf.one_hot(new_chan, depth=k, dtype=tf.float32),
+    )
+
+    indices = tf.reshape(row, [1, 1])
+    updates = tf.reshape(new_row, [1, k])
+    perturbed = tf.tensor_scatter_nd_update(assoc, indices, updates)
+    return repair_valid_tf(perturbed, n_ul, m_dl, k)
+
+
+def _repair_valid(assoc_np: np.ndarray, n_ul: int, m_dl: int, k: int, rng: np.random.Generator | None = None) -> np.ndarray:
+    """Compatibility wrapper around repair_valid_tf."""
+    assoc_tf = tf.constant(assoc_np, dtype=tf.float32)
+    return repair_valid_tf(assoc_tf, n_ul, m_dl, k).numpy().astype(assoc_np.dtype)
+
+
+def _perturb_valid(assoc_np: np.ndarray, n_ul: int, m_dl: int, k: int, rng: np.random.Generator | None = None) -> np.ndarray:
+    """Compatibility wrapper around perturb_valid_tf."""
+    assoc_tf = tf.constant(assoc_np, dtype=tf.float32)
+    return perturb_valid_tf(assoc_tf, n_ul, m_dl, k).numpy().astype(assoc_np.dtype)
+
+
+def scheme_penalty_tf(scheme: Scheme, assoc: tf.Tensor, n_ul: int) -> tf.Tensor:
+    """Evaluate access scheme penalty on GPU tensor."""
+    name = scheme.name.upper()
+    if name == "MF-SIC":
+        return tf.constant(0.0, dtype=tf.float32)
+    a_ul = assoc[:n_ul]
+    a_dl = assoc[n_ul:]
+    big = tf.constant(1e14, dtype=tf.float32)
+    if name == "ARJOA":
+        g = tf.reduce_sum(a_ul, axis=-1) - 1.0
+        return big * tf.reduce_sum(tf.square(g))
+    if name == "IOJOA":
+        dec = tf.constant(scheme.offload_decision, dtype=tf.float32) if scheme.offload_decision is not None else tf.ones(n_ul, dtype=tf.float32)
+        g = tf.reduce_sum(a_ul, axis=-1) - dec
+        return big * tf.reduce_sum(tf.square(g))
+    if name == "ALCA":
+        return big * tf.reduce_sum(a_ul)
+    if name == "FDMA":
+        load = tf.reduce_sum(a_ul, axis=0) + tf.reduce_sum(a_dl, axis=0)
+        g = tf.maximum(load - 1.0, 0.0)
+        return big * tf.reduce_sum(tf.square(g))
+    return tf.constant(0.0, dtype=tf.float32)
+
+
+def get_tabu_key(assoc: tf.Tensor) -> bytes:
+    """Extract a fast, unique byte key for the association matrix for Tabu table lookup."""
+    return bytes(tf.cast(assoc >= 0.5, tf.int8).numpy().tobytes())
 
 
 class HybridSolverTF:
-    """Hybrid <TPC>-BWOA solver accelerated with TensorFlow."""
+    """Hybrid <TPC>-BWOA solver accelerated with TensorFlow on GPU."""
 
     def __init__(
         self,
@@ -86,6 +188,7 @@ class HybridSolverTF:
         self.n_inner_calls = 0
         self.eval_cache: dict[bytes, _InnerTF] = {}
         self.n_cache_hits = 0
+        self.n_flips = 0
 
     # ------------------------------------------------------------------ #
     # Inner Power Control Problems (Batched Swarm)
@@ -182,13 +285,14 @@ class HybridSolverTF:
     # ------------------------------------------------------------------ #
     def evaluate(self, assoc: tf.Tensor, assoc_np: np.ndarray | None = None) -> _InnerTF:
         m = self.model
-        if assoc_np is None:
-            assoc_np = assoc.numpy().astype(np.int8)
-
-        # Fast CPU scheme check before invoking inner GPU solvers
-        scheme_pen = self.scheme.penalty(assoc_np, m.n_ul)
-        if scheme_pen > 0:
-            return _InnerTF(-scheme_pen, np.full(m.n_ul, m.p.p_min, dtype=np.float32), np.zeros(m.n_dl, dtype=np.float32))
+        scheme_pen_tf = scheme_penalty_tf(self.scheme, assoc, m.n_ul)
+        if float(scheme_pen_tf) > 0.0:
+            return _InnerTF(
+                utility=float(-scheme_pen_tf),
+                p_ul_tf=tf.fill([m.n_ul], float(m.p.p_min)),
+                q_dl_tf=tf.zeros(m.n_dl, dtype=tf.float32),
+                utility_tf=-scheme_pen_tf,
+            )
 
         self.n_inner_calls += 1
 
@@ -201,10 +305,15 @@ class HybridSolverTF:
         _, q_dl = self.solve_dl_tpc(dl_sub, ul_sub, p_ul)
 
         util_tf = m.utility_tf(assoc, p_ul, q_dl)
-        return _InnerTF(float(util_tf), p_ul.numpy(), q_dl.numpy())
+        return _InnerTF(
+            utility=float(util_tf),
+            p_ul_tf=p_ul,
+            q_dl_tf=q_dl,
+            utility_tf=util_tf,
+        )
 
     # ------------------------------------------------------------------ #
-    # Algorithm 3 (Outer BWOA Search)
+    # Algorithm 3 (Outer BWOA Search on GPU)
     # ------------------------------------------------------------------ #
     def solve(self) -> SolutionTF:
         m, cfg, rng = self.model, self.algo, self.rng
@@ -221,75 +330,80 @@ class HybridSolverTF:
         use_cache = getattr(cfg, "enable_cache", True)
         max_retries = getattr(cfg, "cache_max_retries", 0)
 
+        # Initialize population on GPU
         pop_np = self.scheme.seed(m.assoc_shape, m.n_ul, m.m_dl, rng, cfg.n_agents_bwoa).astype(np.float32)
         pop = tf.constant(pop_np, dtype=tf.float32)
+        pop = repair_population_tf(pop, m.n_ul, m.m_dl, k)
 
-        best_score = -np.inf
-        best = _InnerTF(-np.inf, np.full(m.n_ul, m.p.p_min, dtype=np.float32), np.zeros(m.n_dl, dtype=np.float32))
-        best_assoc = pop_np[0].astype(np.int8)
+        best_score_tf = tf.constant(-np.inf, dtype=tf.float32)
+        best_assoc_tf = pop[0]
+        best_p_ul_tf = tf.fill([m.n_ul], float(m.p.p_min))
+        best_q_dl_tf = tf.zeros(m.n_dl, dtype=tf.float32)
         curve, stalled = [], 0
 
         for it in range(cfg.max_iter_bwoa):
-            new_pop_np = pop.numpy().astype(np.int8)
+            new_pop_list = []
+
+            # Sequential BWOA agent evaluation on GPU with Tabu table memoization
             for s in range(pop.shape[0]):
-                assoc_s_np = _repair_valid(new_pop_np[s], m.n_ul, m.m_dl, k, rng)
+                assoc_s = pop[s]
+                assoc_s = repair_valid_tf(assoc_s, m.n_ul, m.m_dl, k)
 
                 if use_cache:
-                    key = assoc_s_np.tobytes()
+                    key = get_tabu_key(assoc_s)
                     retries = 0
                     while key in self.eval_cache and retries < max_retries:
-                        assoc_s_np = _perturb_valid(assoc_s_np, m.n_ul, m.m_dl, k, rng)
-                        key = assoc_s_np.tobytes()
+                        assoc_s = perturb_valid_tf(assoc_s, m.n_ul, m.m_dl, k)
+                        key = get_tabu_key(assoc_s)
                         retries += 1
 
                     if retries > 0:
                         self.n_flips += 1
 
-                    new_pop_np[s] = assoc_s_np
-
                     if key in self.eval_cache:
                         self.n_cache_hits += 1
                         inner = self.eval_cache[key]
                     else:
-                        assoc_s_tf = tf.constant(assoc_s_np, dtype=tf.float32)
-                        inner = self.evaluate(assoc_s_tf, assoc_s_np)
+                        inner = self.evaluate(assoc_s)
                         self.eval_cache[key] = inner
                 else:
-                    new_pop_np[s] = assoc_s_np
-                    assoc_s_tf = tf.constant(assoc_s_np, dtype=tf.float32)
-                    inner = self.evaluate(assoc_s_tf, assoc_s_np)
+                    inner = self.evaluate(assoc_s)
 
-                if inner.utility > best_score:
-                    best_score = inner.utility
-                    best = inner
-                    best_assoc = assoc_s_np.copy()
+                new_pop_list.append(assoc_s)
 
+                if inner.utility > float(best_score_tf):
+                    best_score_tf = inner.utility_tf
+                    best_assoc_tf = assoc_s
+                    best_p_ul_tf = inner.p_ul_tf
+                    best_q_dl_tf = inner.q_dl_tf
+
+            # Re-stack population on GPU
+            pop = tf.stack(new_pop_list, axis=0)
+
+            cur_best = float(best_score_tf)
             prev = curve[-1] if curve else -np.inf
-            curve.append(best_score)
-            stalled = stalled + 1 if abs(best_score - prev) < cfg.tol_bwoa else 0
+            curve.append(cur_best)
+            stalled = stalled + 1 if abs(cur_best - prev) < cfg.tol_bwoa else 0
             if stalled >= cfg.patience_bwoa:
                 break
 
-            pop = tf.constant(new_pop_np, dtype=tf.float32)
-            leader = tf.constant(best_assoc, dtype=tf.float32)
+            # Vectorized BWOA position update step ON GPU
+            leader = best_assoc_tf
             t_tf = tf.constant(it, dtype=tf.int32)
             max_iter_tf = tf.constant(cfg.max_iter_bwoa, dtype=tf.int32)
             pop = bwoa_step_tf(pop, leader, t_tf, max_iter_tf, slope=cfg.sigmoid_slope)
 
-        # Compute final states
-        assoc_tf = tf.constant(best_assoc, dtype=tf.float32)
-        p_ul_tf = tf.constant(best.p_ul, dtype=tf.float32)
-        q_dl_tf = tf.constant(best.q_dl, dtype=tf.float32)
-        ul_sub, dl_sub = m.decode_tf(assoc_tf)
-        xi = m.cochannel_at_sbs_tf(dl_sub, q_dl_tf)
-        rates = m.ul_rates_tf(ul_sub, p_ul_tf, xi, dl_sub)
-        rho, chi, f_alloc = m.iscc_allocate_tf(ul_sub, rates, p_ul_tf)
+        # Compute final states on GPU
+        ul_sub, dl_sub = m.decode_tf(best_assoc_tf)
+        xi = m.cochannel_at_sbs_tf(dl_sub, best_q_dl_tf)
+        rates = m.ul_rates_tf(ul_sub, best_p_ul_tf, xi, dl_sub)
+        rho, chi, f_alloc = m.iscc_allocate_tf(ul_sub, rates, best_p_ul_tf)
 
         return SolutionTF(
-            utility=float(best_score),
-            assoc=best_assoc,
-            ul_power=best.p_ul,
-            dl_power=best.q_dl,
+            utility=float(best_score_tf),
+            assoc=best_assoc_tf.numpy().astype(np.int8),
+            ul_power=best_p_ul_tf.numpy(),
+            dl_power=best_q_dl_tf.numpy(),
             server_alloc=f_alloc.numpy(),
             curve=np.asarray(curve, dtype=np.float32),
             runtime=time.perf_counter() - start,
