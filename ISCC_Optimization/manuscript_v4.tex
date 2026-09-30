@@ -253,7 +253,7 @@ The map $\vec{p}\mapsto\mathbb{W}$ is nonconvex because $R_{n,k,m}$ couples all 
 \end{equation}
 
 \begin{lemma}\label{lem:quasi}
-For each offloading UE, $w_n(p)=(\eta_n+\theta_n p)/[B_k\log_2(1+\bar h_n p)]$ is quasiconvex on $(0,p_n^{\tt max}]$. A minimizer $p_n^\dagger$ is $p_n^{\tt max}$ if $\phi_n(p_n^{\tt max})\le 0$, and otherwise the unique root of
+For each offloading UE, ${\color{blue}\tilde{w}}_n(p)=(\eta_n+\theta_n p)/[B_k\log_2(1+\bar h_n p)]$ is quasiconvex on $(0,p_n^{\tt max}]$. A minimizer $p_n^\dagger$ is $p_n^{\tt max}$ if $\phi_n(p_n^{\tt max})\le 0$, and otherwise the unique root of
 \begin{equation}
 \phi_n(p)
 =\theta_n\log_2(1+\bar h_n p)
@@ -263,8 +263,8 @@ For each offloading UE, $w_n(p)=(\eta_n+\theta_n p)/[B_k\log_2(1+\bar h_n p)]$ i
 which is found by bisection in $\mathcal{O}(\log(p_n^{\tt max}/\varepsilon))$ steps.
 \end{lemma}
 \begin{IEEEproof}
-The sign of $w_n'(p)$ coincides with $\phi_n(p)$. 
-{\color{blue}Moreover $\phi_n'(p)>0$ on $(0,\infty)$, so $\phi_n$ is strictly increasing, making $w_n$ strictly quasiconvex.}
+The sign of $\tilde{w}_n'(p)$ coincides with $\phi_n(p)$. 
+{\color{blue}Moreover $\phi_n'(p)>0$ on $(0,\infty)$, so $\phi_n$ is strictly increasing, making $\tilde{w}_n$ strictly quasiconvex.}
 \end{IEEEproof}
 
 {\color{blue}Pruning must act before $(\vec{\rho},\vec{\chi})$ are known. Leveraging the interference-free decoupling of \eqref{eq:Wtil}, we replace for each offloading UE $R_n$ by $\bar R_n=B_k\log_2(1+\bar h_np_n^{\tt max})$, $F_{nm}$ by $F_m^{\tt max}$, and offload energy by $D_n^{\tt raw}\ln2/(\xi_nB_k\bar h_n)$ via $\log_2(1+x)\le x/\ln2$. Each replacement lowers $\Delta_n$ and $\Theta_n$ pointwise, so $\bar\Omega_n(\rho_n)\le\Omega_n(\rho_n)$ for all $(\vec{p},\vec{F})$. With $\bar u_n$ the maximum of $\mathbb{U}_n^{\tt ul}$ under $\bar\Omega_n$ from Propositions~\ref{prop:rho}--\ref{prop:chi}, let}
