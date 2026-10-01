@@ -1,17 +1,14 @@
 #!/usr/bin/env python3
-"""Synthesize UE Density sweep results for 2UL-1DL from 5 to 35 active UEs.
+"""Synthesize UAV Density sweep results for 1DL-20UE with UL UAVs from 1 to 6.
 
 Sources merged:
-- pureMemoi_2UL1DL_5_10 (UEs = 5, 10)
-- pureMemoi_2UL1DL_15   (UEs = 15)
-- pureMemoi_2UL1DL_20   (UEs = 20)
-- pureMemoi_2UL1DL_25   (UEs = 25)
-- pureMemoi_2UL1DL_30   (UEs = 30)
-- pureMemoi_2UL1DL_35   (UEs = 35)
+- 1DL20UE_1_2 (UL UAVs = 1, 2)
+- 1DL20UE_3_4 (UL UAVs = 3, 4)
+- 1DL20UE_5_6 (UL UAVs = 5, 6)
 
-Outputs generated in jobs/UE_density/syn/syn_x (auto-incrementing syn_1, syn_2, ...):
-- ue_density.json (Unified multi-point sweep JSON)
-- ue_density.mat  (MATLAB format)
+Outputs generated in jobs/UAV_density/syn/syn_x (auto-incrementing syn_1, syn_2, ...):
+- uav_density.json (Unified multi-point sweep JSON)
+- uav_density.mat  (MATLAB format)
 - summary.json    (Synthesized summary table)
 - Publication-quality PDF and PNG plots for Utility, Offloading, Delay, Energy, Accuracy, and Runtime
   matching the exact default color and line style of run_job.py (PGD-BWOA inheriting IWOA-BWOA styles).
@@ -42,39 +39,33 @@ if str(SCRIPTS_DIR) not in sys.path:
 
 import numpy as np
 
-try:
-    from stochastic_mec import SweepResult
-except Exception:
-    class SweepResult:
-        def __init__(self, x_label: str, x: list[float], data: dict[str, dict[str, list[float]]]):
-            self.x_label = x_label
-            self.x = [float(v) for v in x]
-            self.data = data
+class SweepResult:
+    def __init__(self, x_label: str, x: list[float], data: dict[str, dict[str, list[float]]]):
+        self.x_label = x_label
+        self.x = [float(v) for v in x]
+        self.data = data
 
-        def save(self, path: str | Path) -> Path:
-            path = Path(path)
-            path.parent.mkdir(parents=True, exist_ok=True)
-            payload = {"x_label": self.x_label, "x": self.x, "data": self.data}
-            path.write_text(json.dumps(payload, indent=2))
-            try:
-                from scipy.io import savemat
-                safe_data = {
-                    "".join(c if c.isalnum() else "_" for c in k)[:31].strip("_"): v
-                    for k, v in self.data.items()
-                }
-                savemat(path.with_suffix(".mat"), {"x_label": self.x_label, "x": self.x, "data": safe_data})
-            except Exception as exc:
-                print(f"[warning] could not save .mat file to {path.with_suffix('.mat')}: {exc}")
-            return path
+    def save(self, path: str | Path) -> Path:
+        path = Path(path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        payload = {"x_label": self.x_label, "x": self.x, "data": self.data}
+        path.write_text(json.dumps(payload, indent=2))
+        try:
+            from scipy.io import savemat
+            safe_data = {
+                "".join(c if c.isalnum() else "_" for c in k)[:31].strip("_"): v
+                for k, v in self.data.items()
+            }
+            savemat(path.with_suffix(".mat"), {"x_label": self.x_label, "x": self.x, "data": safe_data})
+        except Exception as exc:
+            print(f"[warning] could not save .mat file to {path.with_suffix('.mat')}: {exc}")
+        return path
 
-# Source folders in UE density
+# Source folders in UAV density (1DL, 20UE: 1 to 6 UL UAVs)
 FOLDERS = [
-    "pureMemoi_2UL1DL_5_10",
-    "pureMemoi_2UL1DL_15",
-    "pureMemoi_2UL1DL_20",
-    "pureMemoi_2UL1DL_25",
-    "pureMemoi_2UL1DL_30",
-    "pureMemoi_2UL1DL_35",
+    "1DL20UE_1_2",
+    "1DL20UE_3_4",
+    "1DL20UE_5_6",
 ]
 
 # Exact default curve ordering matching run_job.py (DEFAULT_CURVES)
@@ -125,7 +116,7 @@ def collect_sweep_data(
     folder_names: list[str],
 ) -> tuple[str, list[float], dict[str, dict[str, list[float]]], list[dict]]:
     """Read .json files from each subfolder and merge them into a sorted dataset."""
-    x_label = r"Active-UE Density [$\times 10^{-6}/m^2$]"
+    x_label = r"UL-UAV Density [$\times 10^{-6}/m^2$]"
     raw_points_by_x: dict[float, dict[str, dict[str, float]]] = {}
     found_folders: list[dict] = []
 
@@ -136,14 +127,21 @@ def collect_sweep_data(
             print(f"[warning] Folder {folder} has no result_* directories. Skipping.")
             continue
 
-        json_file = res_dir / "ue_density.json"
+        json_file = res_dir / "uav_density.json"
         if not json_file.exists():
-            print(f"[warning] File {json_file} does not exist. Skipping.")
+            json_file = res_dir / "ue_density.json"
+        if not json_file.exists():
+            print(f"[warning] No json result found in {res_dir}. Skipping.")
             continue
 
         print(f"Reading from: {json_file.relative_to(base_dir)}")
         data_block = json.loads(json_file.read_text())
-        x_label = data_block.get("x_label", x_label)
+        raw_x_label = data_block.get("x_label")
+        if raw_x_label:
+            if "ul-uav density" in raw_x_label.lower():
+                x_label = r"UL-UAV Density [$\times 10^{-6}/m^2$]"
+            else:
+                x_label = raw_x_label
         xs = data_block.get("x", [])
         data = data_block.get("data", {})
 
@@ -165,11 +163,11 @@ def collect_sweep_data(
                         raw_points_by_x[x_f][algo][m_key] = m_vals[i]
 
     if not raw_points_by_x:
-        raise RuntimeError("No valid ue_density.json results found to synthesize!")
+        raise RuntimeError("No valid uav_density.json / ue_density.json results found to synthesize!")
 
     # Sort all points ascending by x
     sorted_xs = sorted(raw_points_by_x.keys())
-    print(f"\nSynthesizing {len(sorted_xs)} unique UE density points: {sorted_xs}")
+    print(f"\nSynthesizing {len(sorted_xs)} unique UL-UAV density points: {sorted_xs}")
 
     # Discover all algorithms present across all points
     all_algos = set()
@@ -216,6 +214,7 @@ def plot_metric(
     label_fontsize: float = 16,
     tick_labelsize: float = 15,
     tick_length: float = 4.0,
+    legend_fontsize: float = 9,
 ) -> None:
     """Render plot matching the exact default style and colors of run_job.py / plotting.py."""
     import matplotlib
@@ -224,12 +223,15 @@ def plot_metric(
 
     fig, ax = plt.subplots(figsize=(6.0, 3.6))
 
-    for i, (algo, series) in enumerate(data.items()):
-        if filter_algos is not None and algo not in filter_algos:
+    algos_to_plot = filter_algos if filter_algos is not None else [a for a in ALGO_ORDER if a in data]
+    for a in data:
+        if a not in algos_to_plot and (filter_algos is None):
+            algos_to_plot.append(a)
+
+    for i, algo in enumerate(algos_to_plot):
+        if algo not in data or metric not in data[algo]:
             continue
-        if metric not in series:
-            continue
-        vals = np.asarray(series[metric], dtype=float)
+        vals = np.asarray(data[algo][metric], dtype=float)
         # Use consistent color and marker index based on ALGO_ORDER
         algo_idx = ALGO_ORDER.index(algo) if algo in ALGO_ORDER else i
         color = f"C{algo_idx % 10}"
@@ -256,7 +258,7 @@ def plot_metric(
     if title:
         ax.set_title(title)
 
-    ax.legend(loc="best", fontsize=9)
+    ax.legend(loc="best", fontsize=legend_fontsize)
     fig.tight_layout()
 
     out_pdf.parent.mkdir(parents=True, exist_ok=True)
@@ -273,13 +275,43 @@ def main() -> None:
         "--folders",
         nargs="+",
         default=FOLDERS,
-        help="Subfolder names in jobs/UE_density to merge (default: FOLDERS)",
+        help="Subfolder names in jobs/UAV_density to merge (default: FOLDERS)",
     )
     parser.add_argument(
         "--out",
         type=Path,
         default=None,
         help="Destination directory (default: auto-incrementing syn/syn_x)",
+    )
+    parser.add_argument(
+        "--xlabel",
+        type=str,
+        default=None,
+        help="Custom label for x-axis (default: UL-UAV Density [$\\times 10^{-6}/m^2$])",
+    )
+    parser.add_argument(
+        "--label-fontsize",
+        type=float,
+        default=16.0,
+        help="Font size for x and y axis labels (default: 16)",
+    )
+    parser.add_argument(
+        "--tick-labelsize",
+        type=float,
+        default=15.0,
+        help="Font size for axis tick numbers (default: 15)",
+    )
+    parser.add_argument(
+        "--legend-fontsize",
+        type=float,
+        default=9.0,
+        help="Font size for plot legend (default: 9)",
+    )
+    parser.add_argument(
+        "--tick-length",
+        type=float,
+        default=4.0,
+        help="Length of tick markers in points (default: 4.0)",
     )
     args = parser.parse_args()
 
@@ -292,7 +324,7 @@ def main() -> None:
         out_dir.mkdir(parents=True, exist_ok=True)
 
     print("====================================================================")
-    print(" SYNTHESIZE UE DENSITY SWEEP (2UL-1DL: 5 to 35 Active UEs)")
+    print(" SYNTHESIZE UAV DENSITY SWEEP (1DL-20UE: 1 to 6 UL UAVs)")
     print("====================================================================")
     print(f"Base Directory: {SCRIPT_DIR}")
     print(f"Target Output:  {out_dir}")
@@ -304,11 +336,13 @@ def main() -> None:
         SCRIPT_DIR,
         args.folders,
     )
+    if args.xlabel is not None:
+        x_label = args.xlabel
 
     sweep_res = SweepResult(x_label, sorted_xs, unified_data)
 
     # 2. SAVE STRUCTURED SYNTHESIZED RESULTS (.json and .mat)
-    json_path = out_dir / "ue_density.json"
+    json_path = out_dir / "uav_density.json"
     sweep_res.save(json_path)
     print(f"\n[OK] Saved merged sweep to: {json_path} (and .mat)")
 
@@ -319,18 +353,18 @@ def main() -> None:
         summary_table[x_key] = {}
         for algo in unified_data:
             summary_table[x_key][algo] = {
-                "utility": round(unified_data[algo]["utility"][i], 4) if "utility" in unified_data[algo] else None,
-                "offload_ratio": round(unified_data[algo]["offload_ratio"][i], 4) if "offload_ratio" in unified_data[algo] else None,
-                "mean_accuracy": round(unified_data[algo]["mean_accuracy"][i], 4) if "mean_accuracy" in unified_data[algo] else None,
-                "mean_norm_delay": round(unified_data[algo]["mean_norm_delay"][i], 4) if "mean_norm_delay" in unified_data[algo] else None,
-                "total_energy": round(unified_data[algo]["total_energy"][i], 4) if "total_energy" in unified_data[algo] else None,
-                "runtime_s": round(unified_data[algo]["runtime"][i], 2) if "runtime" in unified_data[algo] else None,
+                "utility": round(unified_data[algo]["utility"][i], 4) if "utility" in unified_data[algo] and i < len(unified_data[algo]["utility"]) else None,
+                "offload_ratio": round(unified_data[algo]["offload_ratio"][i], 4) if "offload_ratio" in unified_data[algo] and i < len(unified_data[algo]["offload_ratio"]) else None,
+                "mean_accuracy": round(unified_data[algo]["mean_accuracy"][i], 4) if "mean_accuracy" in unified_data[algo] and i < len(unified_data[algo]["mean_accuracy"]) else None,
+                "mean_norm_delay": round(unified_data[algo]["mean_norm_delay"][i], 4) if "mean_norm_delay" in unified_data[algo] and i < len(unified_data[algo]["mean_norm_delay"]) else None,
+                "total_energy": round(unified_data[algo]["total_energy"][i], 4) if "total_energy" in unified_data[algo] and i < len(unified_data[algo]["total_energy"]) else None,
+                "runtime_s": round(unified_data[algo]["runtime"][i], 2) if "runtime" in unified_data[algo] and i < len(unified_data[algo]["runtime"]) else None,
             }
 
     summary_payload = {
-        "synthesized_job": "UE_density_2UL1DL_5to35",
-        "n_ul": 2,
+        "synthesized_job": "UAV_density_1DL20UE_1to6",
         "n_dl": 1,
+        "n_ue": 20,
         "source_folders": found_folders,
         "x": sorted_xs,
         "algorithms": list(unified_data.keys()),
@@ -341,9 +375,12 @@ def main() -> None:
     print(f"[OK] Saved summary table to: {summary_path}")
 
     # 4. PRINT TERMINAL COMPARISON TABLE FOR SYSTEM UTILITY
-    algos_to_show = list(unified_data.keys())
+    algos_to_show = [a for a in ALGO_ORDER if a in unified_data]
+    for a in unified_data:
+        if a not in algos_to_show:
+            algos_to_show.append(a)
     header_cols = [f"{algo:<12}" for algo in algos_to_show]
-    header_str = f"{'UE Density':<12} | " + " | ".join(header_cols)
+    header_str = f"{'UL-UAV Dens':<12} | " + " | ".join(header_cols)
     sep_line = "=" * len(header_str)
     print("\n" + sep_line)
     print(header_str)
@@ -354,20 +391,26 @@ def main() -> None:
             vals = unified_data.get(algo, {}).get("utility", [])
             val_str = f"{vals[i]:6.3f}" if i < len(vals) and not np.isnan(vals[i]) else "N/A"
             row_cols.append(f"{val_str:<12}")
-        print(f"x = {x:<8g} | " + " | ".join(row_cols))
+        print(f"M_ul = {x:<6g} | " + " | ".join(row_cols))
     print(sep_line)
 
     # 5. GENERATE PUBLICATION-QUALITY PLOTS WITH EXACT RUN_JOB.PY DEFAULT STYLING
     print("\nGenerating publication figures matching run_job.py default styling (PDF & PNG)...")
+    style_kwargs = dict(
+        label_fontsize=args.label_fontsize,
+        tick_labelsize=args.tick_labelsize,
+        tick_length=args.tick_length,
+        legend_fontsize=args.legend_fontsize,
+    )
     plots_spec = [
-        ("utility", "System Utility", "ue_density_su", False, None),
-        ("offload_ratio", "Offloading Percentage", "ue_density_po", False, None),
-        ("mean_norm_delay", r"Mean Normalised Delay $T_n/T_n^{\rm ref}$", "ue_density_delay", False, None),
-        ("total_energy", "Total Energy Consumption [J]", "ue_density_energy", False, None),
-        ("mean_accuracy", r"Mean Inference Accuracy $\Lambda_n$", "ue_density_acc", False, None),
-        ("runtime", "Execution Runtime [s]", "ue_density_runtime", True, None),
-        ("runtime", "Execution Runtime [s]", "ue_density_runtime_bwoa", True, ["PGD-BWOA", "WOA-BWOA", "PSO-BWOA"]),
-        ("runtime", "Execution Runtime [s]", "ue_density_runtime_bwoa_linear", False, ["PGD-BWOA", "WOA-BWOA", "PSO-BWOA"]),
+        ("utility", "System Utility", "uav_density_su", False, None),
+        ("offload_ratio", "Offloading Percentage", "uav_density_po", False, None),
+        ("mean_norm_delay", r"Mean Normalised Delay $T_n/T_n^{\rm ref}$", "uav_density_delay", False, None),
+        ("total_energy", "Total Energy Consumption [J]", "uav_density_energy", False, None),
+        ("mean_accuracy", r"Mean Inference Accuracy $\Lambda_n$", "uav_density_acc", False, None),
+        ("runtime", "Execution Runtime [s]", "uav_density_runtime", True, None),
+        ("runtime", "Execution Runtime [s]", "uav_density_runtime_bwoa", True, ["PGD-BWOA", "WOA-BWOA", "PSO-BWOA"]),
+        ("runtime", "Execution Runtime [s]", "uav_density_runtime_bwoa_linear", False, ["PGD-BWOA", "WOA-BWOA", "PSO-BWOA"]),
     ]
 
     for metric, ylabel, fname, log_y, filter_algos in plots_spec:
@@ -383,6 +426,7 @@ def main() -> None:
             png_f,
             log_y=log_y,
             filter_algos=filter_algos,
+            **style_kwargs,
         )
 
     print(f"\nAll synthesized files successfully written to:\n  {out_dir.resolve()}")
