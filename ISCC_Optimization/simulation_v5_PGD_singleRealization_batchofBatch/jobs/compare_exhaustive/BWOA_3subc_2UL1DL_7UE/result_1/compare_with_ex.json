@@ -1,0 +1,19 @@
+{
+  "x_label": "active-UE density [$\\times 10^{-6}/m^2$]",
+  "x": [
+    7.0
+  ],
+  "data": {
+    "BWOA": {
+      "utility": [
+        3.012334331870079
+      ],
+      "runtime": [
+        226.45553506864235
+      ],
+      "offload_ratio": [
+        0.8
+      ]
+    }
+  }
+}

@@ -1,0 +1,196 @@
+{
+  "job": "sensing_snr",
+  "algorithm": "PGD-BWOA",
+  "n_ul": 2,
+  "n_dl": 1,
+  "n_ue": 10,
+  "seed": 2025,
+  "topo_id": "33568",
+  "elapsed_total_s": 637.74,
+  "points": {
+    "2.0": {
+      "snr_db": 2.0,
+      "ISCC": {
+        "utility": 1.0689,
+        "retention": 1.0,
+        "split": 1.0,
+        "admissible_ratio": 0.1667,
+        "accuracy": 0.9057,
+        "norm_delay": 0.1882,
+        "offload_ratio": 0.1667,
+        "runtime_s": 128.84
+      },
+      "Atomic": {
+        "utility": 1.0689,
+        "retention": 1.0,
+        "split": 1.0,
+        "admissible_ratio": 0.1667,
+        "accuracy": 0.9057,
+        "norm_delay": 0.1882,
+        "offload_ratio": 0.1667,
+        "runtime_s": 117.86
+      }
+    },
+    "4.0": {
+      "snr_db": 4.0,
+      "ISCC": {
+        "utility": 1.2032,
+        "retention": 1.0,
+        "split": 1.0,
+        "admissible_ratio": 0.1667,
+        "accuracy": 0.9459,
+        "norm_delay": 0.1882,
+        "offload_ratio": 0.1667,
+        "runtime_s": 130.37
+      },
+      "Atomic": {
+        "utility": 1.2032,
+        "retention": 1.0,
+        "split": 1.0,
+        "admissible_ratio": 0.1667,
+        "accuracy": 0.9459,
+        "norm_delay": 0.1882,
+        "offload_ratio": 0.1667,
+        "runtime_s": 120.14
+      }
+    },
+    "6.0": {
+      "snr_db": 6.0,
+      "ISCC": {
+        "utility": 1.2837,
+        "retention": 1.0,
+        "split": 1.0,
+        "admissible_ratio": 0.1667,
+        "accuracy": 0.9701,
+        "norm_delay": 0.1882,
+        "offload_ratio": 0.1667,
+        "runtime_s": 128.95
+      },
+      "Atomic": {
+        "utility": 1.2837,
+        "retention": 1.0,
+        "split": 1.0,
+        "admissible_ratio": 0.1667,
+        "accuracy": 0.9701,
+        "norm_delay": 0.1882,
+        "offload_ratio": 0.1667,
+        "runtime_s": 117.9
+      }
+    },
+    "8.0": {
+      "snr_db": 8.0,
+      "ISCC": {
+        "utility": 2.6266,
+        "retention": 1.0,
+        "split": 1.0,
+        "admissible_ratio": 0.5,
+        "accuracy": 0.9548,
+        "norm_delay": 0.351,
+        "offload_ratio": 0.5,
+        "runtime_s": 252.02
+      },
+      "Atomic": {
+        "utility": 2.6275,
+        "retention": 1.0,
+        "split": 1.0,
+        "admissible_ratio": 0.5,
+        "accuracy": 0.9548,
+        "norm_delay": 0.3487,
+        "offload_ratio": 0.5,
+        "runtime_s": 177.2
+      }
+    },
+    "10.0": {
+      "snr_db": 10.0,
+      "ISCC": {
+        "utility": 4.362,
+        "retention": 0.9892,
+        "split": 1.0,
+        "admissible_ratio": 1.0,
+        "accuracy": 0.9515,
+        "norm_delay": 0.4769,
+        "offload_ratio": 1.0,
+        "runtime_s": 122.39
+      },
+      "Atomic": {
+        "utility": 4.3605,
+        "retention": 1.0,
+        "split": 1.0,
+        "admissible_ratio": 1.0,
+        "accuracy": 0.952,
+        "norm_delay": 0.4828,
+        "offload_ratio": 1.0,
+        "runtime_s": 117.72
+      }
+    },
+    "14.0": {
+      "snr_db": 14.0,
+      "ISCC": {
+        "utility": 5.0523,
+        "retention": 0.9501,
+        "split": 1.0,
+        "admissible_ratio": 1.0,
+        "accuracy": 0.9837,
+        "norm_delay": 0.4545,
+        "offload_ratio": 1.0,
+        "runtime_s": 122.33
+      },
+      "Atomic": {
+        "utility": 5.0309,
+        "retention": 1.0,
+        "split": 1.0,
+        "admissible_ratio": 1.0,
+        "accuracy": 0.9855,
+        "norm_delay": 0.4828,
+        "offload_ratio": 1.0,
+        "runtime_s": 117.59
+      }
+    },
+    "18.0": {
+      "snr_db": 18.0,
+      "ISCC": {
+        "utility": 5.3208,
+        "retention": 0.8366,
+        "split": 1.0,
+        "admissible_ratio": 1.0,
+        "accuracy": 0.9911,
+        "norm_delay": 0.3947,
+        "offload_ratio": 1.0,
+        "runtime_s": 124.12
+      },
+      "Atomic": {
+        "utility": 5.2392,
+        "retention": 1.0,
+        "split": 1.0,
+        "admissible_ratio": 1.0,
+        "accuracy": 0.9959,
+        "norm_delay": 0.4828,
+        "offload_ratio": 1.0,
+        "runtime_s": 118.95
+      }
+    },
+    "22.0": {
+      "snr_db": 22.0,
+      "ISCC": {
+        "utility": 5.4739,
+        "retention": 0.7364,
+        "split": 1.0,
+        "admissible_ratio": 1.0,
+        "accuracy": 0.9934,
+        "norm_delay": 0.3419,
+        "offload_ratio": 1.0,
+        "runtime_s": 110.56
+      },
+      "Atomic": {
+        "utility": 5.2983,
+        "retention": 1.0,
+        "split": 1.0,
+        "admissible_ratio": 1.0,
+        "accuracy": 0.9989,
+        "norm_delay": 0.4828,
+        "offload_ratio": 1.0,
+        "runtime_s": 93.9
+      }
+    }
+  }
+}

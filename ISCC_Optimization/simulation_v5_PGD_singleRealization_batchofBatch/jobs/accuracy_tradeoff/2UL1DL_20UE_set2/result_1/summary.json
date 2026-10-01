@@ -1,0 +1,126 @@
+{
+  "job": "accuracy_tradeoff",
+  "algorithm": "PGD-BWOA",
+  "n_ul": 2,
+  "n_dl": 1,
+  "n_ue": 20,
+  "seed": 2025,
+  "topo_id": "95253",
+  "elapsed_total_s": 3554.66,
+  "points": {
+    "0.0": {
+      "beta_a": 0.02,
+      "ISCC": {
+        "utility": 8.2569,
+        "accuracy": 0.9,
+        "norm_delay": 0.4003,
+        "retention": 0.6319,
+        "offload_ratio": 0.8333,
+        "runtime_s": 636.33
+      },
+      "Atomic": {
+        "utility": 7.0897,
+        "accuracy": 0.9709,
+        "norm_delay": 0.7277,
+        "retention": 1.0,
+        "offload_ratio": 0.8333,
+        "runtime_s": 868.71
+      }
+    },
+    "0.1": {
+      "beta_a": 0.1,
+      "ISCC": {
+        "utility": 7.7292,
+        "accuracy": 0.9228,
+        "norm_delay": 0.4319,
+        "retention": 0.7117,
+        "offload_ratio": 0.8333,
+        "runtime_s": 636.71
+      },
+      "Atomic": {
+        "utility": 7.162,
+        "accuracy": 0.9709,
+        "norm_delay": 0.7277,
+        "retention": 1.0,
+        "offload_ratio": 0.8333,
+        "runtime_s": 869.25
+      }
+    },
+    "0.2": {
+      "beta_a": 0.25,
+      "ISCC": {
+        "utility": 7.418,
+        "accuracy": 0.9641,
+        "norm_delay": 0.5609,
+        "retention": 0.9227,
+        "offload_ratio": 0.8333,
+        "runtime_s": 634.16
+      },
+      "Atomic": {
+        "utility": 7.2974,
+        "accuracy": 0.9709,
+        "norm_delay": 0.7277,
+        "retention": 1.0,
+        "offload_ratio": 0.8333,
+        "runtime_s": 834.45
+      }
+    },
+    "0.3": {
+      "beta_a": 0.35,
+      "ISCC": {
+        "utility": 7.4425,
+        "accuracy": 0.969,
+        "norm_delay": 0.642,
+        "retention": 0.9652,
+        "offload_ratio": 0.8333,
+        "runtime_s": 418.54
+      },
+      "Atomic": {
+        "utility": 7.3997,
+        "accuracy": 0.9709,
+        "norm_delay": 0.7247,
+        "retention": 1.0,
+        "offload_ratio": 0.8333,
+        "runtime_s": 712.83
+      }
+    },
+    "0.5": {
+      "beta_a": 0.5,
+      "ISCC": {
+        "utility": 7.5458,
+        "accuracy": 0.9706,
+        "norm_delay": 0.6585,
+        "retention": 0.9891,
+        "offload_ratio": 0.8333,
+        "runtime_s": 419.04
+      },
+      "Atomic": {
+        "utility": 7.5332,
+        "accuracy": 0.9709,
+        "norm_delay": 0.7247,
+        "retention": 1.0,
+        "offload_ratio": 0.8333,
+        "runtime_s": 714.02
+      }
+    },
+    "0.8": {
+      "beta_a": 0.8,
+      "ISCC": {
+        "utility": 7.8037,
+        "accuracy": 0.9709,
+        "norm_delay": 0.6652,
+        "retention": 1.0,
+        "offload_ratio": 0.8333,
+        "runtime_s": 372.51
+      },
+      "Atomic": {
+        "utility": 7.8003,
+        "accuracy": 0.9709,
+        "norm_delay": 0.7247,
+        "retention": 1.0,
+        "offload_ratio": 0.8333,
+        "runtime_s": 538.77
+      }
+    }
+  }
+}

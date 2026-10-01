@@ -1,0 +1,24 @@
+{
+  "job": "BWOA",
+  "densities": [
+    7
+  ],
+  "subchannels": 3,
+  "ul_cells": 2,
+  "dl_cells": 1,
+  "realizations": 1,
+  "seed": 2025,
+  "records": [
+    {
+      "density": 7,
+      "realization": 1,
+      "seed": 2025,
+      "topo_id": "73265",
+      "chan_id": "83253",
+      "utility": 3.0123,
+      "runtime_s": 226.46,
+      "offload_ratio": 0.8,
+      "n_cases": 3072
+    }
+  ]
+}
