@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""UL-UAV Density sweep (5 to 6 with Pure Memoization, 1 DL UAV and 20 Active UEs)."""
+"""UL-UAV Density sweep (1 to 4 with Pure Memoization, 1 DL UAV and 20 Active UEs)."""
 
 from __future__ import annotations
 
@@ -28,7 +28,7 @@ from stochastic_mec import AlgorithmParams  # noqa: E402
 # ==============================================================================
 # CONFIGURATION
 # ==============================================================================
-XS = list(range(5, 7, 1))          # UL-UAV density: [5, 6] in 1e-6/m^2
+XS = [3, 4]          # UL-UAV density: [1, 2, 3, 4] in 1e-6/m^2
 REALIZATIONS = 1
 SEED = 2025                        # Random seed
 MAX_ITER = 200                     # Maximum iterations for BWOA (default: 120; TPC defaults to 60)
