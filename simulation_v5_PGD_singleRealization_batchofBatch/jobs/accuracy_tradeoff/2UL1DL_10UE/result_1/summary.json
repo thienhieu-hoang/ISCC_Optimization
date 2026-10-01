@@ -1,0 +1,183 @@
+{
+  "job": "accuracy_tradeoff",
+  "algorithm": "PGD-BWOA",
+  "n_ul": 2,
+  "n_dl": 1,
+  "n_ue": 10,
+  "seed": 2025,
+  "topo_id": "36272",
+  "elapsed_total_s": 848.92,
+  "points": {
+    "0.0": {
+      "beta_a": 0.0,
+      "ISCC": {
+        "utility": 5.2141,
+        "accuracy": 0.9,
+        "norm_delay": 0.3495,
+        "retention": 0.741,
+        "offload_ratio": 1.0,
+        "runtime_s": 116.25
+      },
+      "Atomic": {
+        "utility": 4.8085,
+        "accuracy": 0.952,
+        "norm_delay": 0.4828,
+        "retention": 1.0,
+        "offload_ratio": 1.0,
+        "runtime_s": 106.58
+      }
+    },
+    "0.1": {
+      "beta_a": 0.1,
+      "ISCC": {
+        "utility": 4.7665,
+        "accuracy": 0.9248,
+        "norm_delay": 0.3892,
+        "retention": 0.8291,
+        "offload_ratio": 1.0,
+        "runtime_s": 116.33
+      },
+      "Atomic": {
+        "utility": 4.6741,
+        "accuracy": 0.952,
+        "norm_delay": 0.4828,
+        "retention": 1.0,
+        "offload_ratio": 1.0,
+        "runtime_s": 106.68
+      }
+    },
+    "0.2": {
+      "beta_a": 0.2,
+      "ISCC": {
+        "utility": 4.5579,
+        "accuracy": 0.9491,
+        "norm_delay": 0.4608,
+        "retention": 0.9608,
+        "offload_ratio": 1.0,
+        "runtime_s": 116.43
+      },
+      "Atomic": {
+        "utility": 4.5397,
+        "accuracy": 0.952,
+        "norm_delay": 0.4828,
+        "retention": 1.0,
+        "offload_ratio": 1.0,
+        "runtime_s": 106.98
+      }
+    },
+    "0.3": {
+      "beta_a": 0.3,
+      "ISCC": {
+        "utility": 4.409,
+        "accuracy": 0.9511,
+        "norm_delay": 0.4736,
+        "retention": 0.9833,
+        "offload_ratio": 1.0,
+        "runtime_s": 116.4
+      },
+      "Atomic": {
+        "utility": 4.4053,
+        "accuracy": 0.952,
+        "norm_delay": 0.4828,
+        "retention": 1.0,
+        "offload_ratio": 1.0,
+        "runtime_s": 106.83
+      }
+    },
+    "0.4": {
+      "beta_a": 0.4,
+      "ISCC": {
+        "utility": 4.2709,
+        "accuracy": 0.952,
+        "norm_delay": 0.4828,
+        "retention": 1.0,
+        "offload_ratio": 1.0,
+        "runtime_s": 111.05
+      },
+      "Atomic": {
+        "utility": 4.2709,
+        "accuracy": 0.952,
+        "norm_delay": 0.4828,
+        "retention": 1.0,
+        "offload_ratio": 1.0,
+        "runtime_s": 106.7
+      }
+    },
+    "0.5": {
+      "beta_a": 0.5,
+      "ISCC": {
+        "utility": 4.1365,
+        "accuracy": 0.952,
+        "norm_delay": 0.4828,
+        "retention": 1.0,
+        "offload_ratio": 1.0,
+        "runtime_s": 111.03
+      },
+      "Atomic": {
+        "utility": 4.1365,
+        "accuracy": 0.952,
+        "norm_delay": 0.4828,
+        "retention": 1.0,
+        "offload_ratio": 1.0,
+        "runtime_s": 106.7
+      }
+    },
+    "0.6": {
+      "beta_a": 0.6,
+      "ISCC": {
+        "utility": 4.0021,
+        "accuracy": 0.952,
+        "norm_delay": 0.4828,
+        "retention": 1.0,
+        "offload_ratio": 1.0,
+        "runtime_s": 111.3
+      },
+      "Atomic": {
+        "utility": 4.0021,
+        "accuracy": 0.952,
+        "norm_delay": 0.4828,
+        "retention": 1.0,
+        "offload_ratio": 1.0,
+        "runtime_s": 106.9
+      }
+    },
+    "0.7": {
+      "beta_a": 0.7,
+      "ISCC": {
+        "utility": 3.9796,
+        "accuracy": 0.952,
+        "norm_delay": 0.4831,
+        "retention": 1.0,
+        "offload_ratio": 1.0,
+        "runtime_s": 205.4
+      },
+      "Atomic": {
+        "utility": 3.9731,
+        "accuracy": 0.952,
+        "norm_delay": 0.4917,
+        "retention": 1.0,
+        "offload_ratio": 1.0,
+        "runtime_s": 250.04
+      }
+    },
+    "0.8": {
+      "beta_a": 0.8,
+      "ISCC": {
+        "utility": 3.845,
+        "accuracy": 0.952,
+        "norm_delay": 0.4831,
+        "retention": 1.0,
+        "offload_ratio": 1.0,
+        "runtime_s": 176.58
+      },
+      "Atomic": {
+        "utility": 3.8407,
+        "accuracy": 0.952,
+        "norm_delay": 0.4917,
+        "retention": 1.0,
+        "offload_ratio": 1.0,
+        "runtime_s": 228.2
+      }
+    }
+  }
+}

@@ -1,0 +1,126 @@
+{
+  "job": "accuracy_tradeoff",
+  "algorithm": "PGD-BWOA",
+  "n_ul": 2,
+  "n_dl": 1,
+  "n_ue": 10,
+  "seed": 2025,
+  "topo_id": "26366",
+  "elapsed_total_s": 840.19,
+  "points": {
+    "0.0": {
+      "beta_a": 0.02,
+      "ISCC": {
+        "utility": 5.1167,
+        "accuracy": 0.9,
+        "norm_delay": 0.3495,
+        "retention": 0.741,
+        "offload_ratio": 1.0,
+        "runtime_s": 118.19
+      },
+      "Atomic": {
+        "utility": 4.7816,
+        "accuracy": 0.952,
+        "norm_delay": 0.4828,
+        "retention": 1.0,
+        "offload_ratio": 1.0,
+        "runtime_s": 109.36
+      }
+    },
+    "0.1": {
+      "beta_a": 0.1,
+      "ISCC": {
+        "utility": 4.7665,
+        "accuracy": 0.9248,
+        "norm_delay": 0.3892,
+        "retention": 0.8291,
+        "offload_ratio": 1.0,
+        "runtime_s": 117.98
+      },
+      "Atomic": {
+        "utility": 4.6741,
+        "accuracy": 0.952,
+        "norm_delay": 0.4828,
+        "retention": 1.0,
+        "offload_ratio": 1.0,
+        "runtime_s": 108.67
+      }
+    },
+    "0.2": {
+      "beta_a": 0.25,
+      "ISCC": {
+        "utility": 4.4816,
+        "accuracy": 0.9504,
+        "norm_delay": 0.4682,
+        "retention": 0.9737,
+        "offload_ratio": 1.0,
+        "runtime_s": 113.24
+      },
+      "Atomic": {
+        "utility": 4.4725,
+        "accuracy": 0.952,
+        "norm_delay": 0.4828,
+        "retention": 1.0,
+        "offload_ratio": 1.0,
+        "runtime_s": 108.77
+      }
+    },
+    "0.3": {
+      "beta_a": 0.35,
+      "ISCC": {
+        "utility": 4.3389,
+        "accuracy": 0.9516,
+        "norm_delay": 0.4784,
+        "retention": 0.992,
+        "offload_ratio": 1.0,
+        "runtime_s": 113.26
+      },
+      "Atomic": {
+        "utility": 4.3381,
+        "accuracy": 0.952,
+        "norm_delay": 0.4828,
+        "retention": 1.0,
+        "offload_ratio": 1.0,
+        "runtime_s": 108.85
+      }
+    },
+    "0.5": {
+      "beta_a": 0.5,
+      "ISCC": {
+        "utility": 4.1365,
+        "accuracy": 0.952,
+        "norm_delay": 0.4828,
+        "retention": 1.0,
+        "offload_ratio": 1.0,
+        "runtime_s": 113.23
+      },
+      "Atomic": {
+        "utility": 4.1365,
+        "accuracy": 0.952,
+        "norm_delay": 0.4828,
+        "retention": 1.0,
+        "offload_ratio": 1.0,
+        "runtime_s": 108.59
+      }
+    },
+    "0.8": {
+      "beta_a": 0.8,
+      "ISCC": {
+        "utility": 3.845,
+        "accuracy": 0.952,
+        "norm_delay": 0.4831,
+        "retention": 1.0,
+        "offload_ratio": 1.0,
+        "runtime_s": 162.62
+      },
+      "Atomic": {
+        "utility": 3.8407,
+        "accuracy": 0.952,
+        "norm_delay": 0.4917,
+        "retention": 1.0,
+        "offload_ratio": 1.0,
+        "runtime_s": 225.35
+      }
+    }
+  }
+}
