@@ -1,0 +1,24 @@
+{
+  "job": "EX",
+  "densities": [
+    5
+  ],
+  "subchannels": 3,
+  "ul_cells": 2,
+  "dl_cells": 1,
+  "realizations": 1,
+  "seed": 2025,
+  "records": [
+    {
+      "density": 5,
+      "realization": 1,
+      "seed": 2025,
+      "topo_id": "41130",
+      "chan_id": "91800",
+      "utility": 2.5057,
+      "runtime_s": 729.17,
+      "offload_ratio": 0.75,
+      "n_cases": 768
+    }
+  ]
+}
