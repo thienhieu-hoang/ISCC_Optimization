@@ -45,6 +45,26 @@
         "runtime_s": 5.95,
         "summary": "U = +1.0458   offloaded = 0.0 %   t = 5.95 s"
       }
+    },
+    "10": {
+      "WOA-BWOA": {
+        "utility": 5.2883,
+        "offloaded_pct": 96.9,
+        "runtime_s": 4030.27,
+        "summary": "U = +5.2883   offloaded = 96.9 %   t = 4030.27 s"
+      },
+      "IWOA-BWOA": {
+        "utility": 5.2867,
+        "offloaded_pct": 96.9,
+        "runtime_s": 4286.01,
+        "summary": "U = +5.2867   offloaded = 96.9 %   t = 4286.01 s"
+      },
+      "PSO-BWOA": {
+        "utility": 5.2869,
+        "offloaded_pct": 96.9,
+        "runtime_s": 5432.94,
+        "summary": "U = +5.2869   offloaded = 96.9 %   t = 5432.94 s"
+      }
     }
   }
 }

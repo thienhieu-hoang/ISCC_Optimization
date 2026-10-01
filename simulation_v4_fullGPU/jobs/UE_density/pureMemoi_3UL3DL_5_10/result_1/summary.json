@@ -14,6 +14,80 @@
         "offloaded_pct": 100.0,
         "runtime_s": 297.95,
         "summary": "U = +1.9960   offloaded = 100.0 %   t = 297.95 s"
+      },
+      "PSO-BWOA": {
+        "utility": 1.9979,
+        "offloaded_pct": 100.0,
+        "runtime_s": 351.59,
+        "summary": "U = +1.9979   offloaded = 100.0 %   t = 351.59 s"
+      },
+      "ARJOA": {
+        "utility": 1.9957,
+        "offloaded_pct": 100.0,
+        "runtime_s": 165.06,
+        "summary": "U = +1.9957   offloaded = 100.0 %   t = 165.06 s"
+      },
+      "IOJOA": {
+        "utility": 1.6113,
+        "offloaded_pct": 64.6,
+        "runtime_s": 135.52,
+        "summary": "U = +1.6113   offloaded = 64.6 %   t = 135.52 s"
+      },
+      "FDMA": {
+        "utility": 2.0006,
+        "offloaded_pct": 100.0,
+        "runtime_s": 123.36,
+        "summary": "U = +2.0006   offloaded = 100.0 %   t = 123.36 s"
+      },
+      "ALCA": {
+        "utility": 1.0654,
+        "offloaded_pct": 0.0,
+        "runtime_s": 60.4,
+        "summary": "U = +1.0654   offloaded = 0.0 %   t = 60.40 s"
+      }
+    },
+    "10": {
+      "WOA-BWOA": {
+        "utility": 4.2582,
+        "offloaded_pct": 96.9,
+        "runtime_s": 3168.67,
+        "summary": "U = +4.2582   offloaded = 96.9 %   t = 3168.67 s"
+      },
+      "IWOA-BWOA": {
+        "utility": 4.2789,
+        "offloaded_pct": 96.9,
+        "runtime_s": 3497.71,
+        "summary": "U = +4.2789   offloaded = 96.9 %   t = 3497.71 s"
+      },
+      "PSO-BWOA": {
+        "utility": 4.2908,
+        "offloaded_pct": 96.9,
+        "runtime_s": 3940.21,
+        "summary": "U = +4.2908   offloaded = 96.9 %   t = 3940.21 s"
+      },
+      "ARJOA": {
+        "utility": 4.3164,
+        "offloaded_pct": 100.0,
+        "runtime_s": 575.56,
+        "summary": "U = +4.3164   offloaded = 100.0 %   t = 575.56 s"
+      },
+      "IOJOA": {
+        "utility": 3.1825,
+        "offloaded_pct": 46.2,
+        "runtime_s": 514.31,
+        "summary": "U = +3.1825   offloaded = 46.2 %   t = 514.31 s"
+      },
+      "FDMA": {
+        "utility": 3.2472,
+        "offloaded_pct": 46.2,
+        "runtime_s": 368.48,
+        "summary": "U = +3.2472   offloaded = 46.2 %   t = 368.48 s"
+      },
+      "ALCA": {
+        "utility": 2.1299,
+        "offloaded_pct": 0.0,
+        "runtime_s": 354.72,
+        "summary": "U = +2.1299   offloaded = 0.0 %   t = 354.72 s"
       }
     }
   }

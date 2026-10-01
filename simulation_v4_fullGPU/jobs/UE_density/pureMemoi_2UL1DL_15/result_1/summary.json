@@ -1,0 +1,14 @@
+{
+  "parameter": "Active-UE Density [$\\times 10^{-6}/m^2$]",
+  "n_realizations": 8,
+  "points": {
+    "15": {
+      "WOA-BWOA": {
+        "utility": 6.78,
+        "offloaded_pct": 88.5,
+        "runtime_s": 14841.72,
+        "summary": "U = +6.7800   offloaded = 88.5 %   t = 14841.72 s"
+      }
+    }
+  }
+}
