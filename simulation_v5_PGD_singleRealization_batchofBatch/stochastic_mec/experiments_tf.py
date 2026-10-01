@@ -224,7 +224,11 @@ class SweepResult:
         path.write_text(json.dumps(payload, indent=2))
         try:
             from scipy.io import savemat
-            savemat(path.with_suffix(".mat"), payload)
+            safe_data = {
+                "".join(c if c.isalnum() else "_" for c in k)[:31].strip("_"): v
+                for k, v in self.data.items()
+            }
+            savemat(path.with_suffix(".mat"), {"x_label": self.x_label, "x": self.x, "data": safe_data})
         except Exception as exc:
             print(f"[warning] could not save .mat file to {path.with_suffix('.mat')}: {exc}")
         return path
