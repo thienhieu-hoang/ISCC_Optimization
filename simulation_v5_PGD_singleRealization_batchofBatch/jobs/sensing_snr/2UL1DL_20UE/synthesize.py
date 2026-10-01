@@ -156,7 +156,7 @@ def plot_retention_vs_snr(
         )
 
     ax.set_xlabel(r"Mean Sensing SNR $\bar\gamma^{\tt sen}$ [dB]", fontsize=label_fontsize)
-    ax.set_ylabel(r"Fraction", fontsize=label_fontsize)
+    ax.set_ylabel(r"Ratio", fontsize=label_fontsize)
 
     ax.set_xlim(x[0] - 0.6, x[-1] + 0.6)
     ax.set_ylim(-0.02, 1.05)
