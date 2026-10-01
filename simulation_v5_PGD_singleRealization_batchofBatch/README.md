@@ -11,10 +11,10 @@
 
 ### 4-Thread Balanced Scheme Parallelism
 Instead of realization-level multiprocessing (which cannot parallelize when $R=1$), this engine evaluates a **single shared network topology & channel snapshot** across **4 parallel worker threads**:
-- **Thread 1:** `PGD-BWOA` (~7–10 s, finishes and reports first!)
-- **Thread 2:** Offloading Heuristics with inner WOA: `ARJOA` + `IOJOA` (~15–25 s)
-- **Thread 3:** Resource Heuristics with inner WOA: `FDMA` + `ALCA` (~15–20 s)
-- **Thread 4:** Swarm Benchmarks: `WOA-BWOA` + `PSO-BWOA` (~20–25 s)
+- **Thread 1:** `PGD-BWOA` (~2–5 s, finishes and reports first!)
+- **Thread 2:** Fast Heuristics with inner PGD: `ARJOA` + `IOJOA` + `FDMA` + `ALCA` (~5–10 s)
+- **Thread 3:** Swarm Benchmark with inner WOA: `WOA-BWOA` (runs concurrently on separate thread)
+- **Thread 4:** Swarm Benchmark with inner PSO: `PSO-BWOA` (runs concurrently on separate thread)
 
 All 4 threads branch from the **exact same geometry and channel realization**, providing a **~3.5×–4× wall-clock speedup** with 100% fair baseline comparison.
 See [README_batch_run.md](file:///c:/Users/AT30890/Hoctap/3_ISCC_Optimization/simulation_v5_PGD_singleRealization_batchofBatch/README_batch_run.md) for full architectural details.

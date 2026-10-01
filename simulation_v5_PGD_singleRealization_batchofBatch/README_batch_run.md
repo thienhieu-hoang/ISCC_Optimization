@@ -17,10 +17,10 @@ To achieve **near-perfect load balance** and ensure the proposed algorithm repor
 ```mermaid
 graph TD
     subgraph CPU Multi-Threading ["Level 1: 4 CPU Worker Threads (Multiprocessing, jobs=4)"]
-        Topo["Single Network Topology & Channels Snapshot<br/>(seed = base_seed + 1000*xi)"] --> T1["Thread 1<br/>PGD-BWOA (Proposed v5)<br/>(~7-10s, reports first!)"]
-        Topo --> T2["Thread 2 (Offload Heuristics)<br/>ARJOA (~15s) + IOJOA (~10s)<br/>(inner continuous WOA)"]
-        Topo --> T3["Thread 3 (Resource Heuristics)<br/>FDMA (~10s) + ALCA (~10s)<br/>(inner continuous WOA)"]
-        Topo --> T4["Thread 4 (Swarm Benchmarks)<br/>WOA-BWOA (~12s) + PSO-BWOA (~12s)<br/>(inner continuous WOA & PSO)"]
+        Topo["Single Network Topology & Channels Snapshot<br/>(seed = base_seed + 1000*xi)"] --> T1["Thread 1<br/>PGD-BWOA (Proposed v5)<br/>(~2-5s, reports first!)"]
+        Topo --> T2["Thread 2 (Heuristics with inner PGD)<br/>ARJOA + IOJOA + FDMA + ALCA<br/>(~5-10s)"]
+        Topo --> T3["Thread 3 (Swarm Benchmark #1)<br/>WOA-BWOA<br/>(inner continuous WOA on GPU)"]
+        Topo --> T4["Thread 4 (Swarm Benchmark #2)<br/>PSO-BWOA<br/>(inner continuous PSO on GPU)"]
     end
 
     subgraph GPU Batching ["Level 2 & 3: Inside Each Thread (GPU Nested Batching)"]
@@ -36,13 +36,13 @@ graph TD
 ```
 
 * **Thread 1:** `PGD-BWOA` (Proposed: outer BWOA + inner Multi-Start PGD on GPU — **completes and reports first!**)
-* **Thread 2:** `ARJOA` + `IOJOA` (Offloading baselines with inner continuous WOA)
-* **Thread 3:** `FDMA` + `ALCA` (Resource & local computing baselines with inner continuous WOA)
-* **Thread 4:** `WOA-BWOA` + `PSO-BWOA` (Swarm benchmarks with inner continuous WOA and PSO)
+* **Thread 2:** `ARJOA` + `IOJOA` + `FDMA` + `ALCA` (Offloading & resource heuristics with fast inner PGD)
+* **Thread 3:** `WOA-BWOA` (Swarm benchmark with inner continuous WOA — **runs concurrently on separate thread**)
+* **Thread 4:** `PSO-BWOA` (Swarm benchmark with inner continuous PSO — **runs concurrently on separate thread**)
 
 ### Wall-Clock Speedup:
-$$\text{Total Wall-Clock Time} = \max\left(T_{\text{T1}}, T_{\text{T2}}, T_{\text{T3}}, T_{\text{T4}}\right) \approx T_{\text{WOA}} \approx 30 - 40\text{ s}$$
-This provides a **$\sim 3.5\times–4\times$ speedup** over sequential execution on multi-core systems, while immediately reporting the primary `PGD-BWOA` result within the first ~10–15 seconds!
+$$\text{Total Wall-Clock Time} = \max\left(T_{\text{T1}}, T_{\text{T2}}, T_{\text{T3}}, T_{\text{T4}}\right) \approx \max(T_{\text{WOA}}, T_{\text{PSO}})$$
+Because `WOA-BWOA` and `PSO-BWOA` run simultaneously across Thread 3 and Thread 4 (instead of sequentially on the same worker), overall wall-clock runtime is cut in half!
 
 ---
 
@@ -51,14 +51,14 @@ This provides a **$\sim 3.5\times–4\times$ speedup** over sequential execution
 The simulation engine uses CPU multi-processing to parallelize across baseline schemes:
 
 ### A. Thread Grouping & Load Balancing
-Because swarm metaheuristics require hundreds of inner evaluations while deterministic heuristics execute quickly, the schemes are partitioned into **4 balanced worker threads**:
+Because swarm metaheuristics require hundreds of inner evaluations while PGD-based schemes execute very quickly, the schemes are partitioned into **4 balanced worker threads**:
 
 | Thread | Assigned Scheme(s) | Computation Profile | Wall-Clock Time |
 | :--- | :--- | :--- | :--- |
-| **Thread 1** | `PGD-BWOA` | **Proposed v5 scheme** (Multi-Start PGD with Adam on GPU) | ~10 – 15 s (**Reports first!**) |
-| **Thread 2** | `ARJOA` + `IOJOA` | Offloading heuristics with inner PGD | ~10 – 15 s |
-| **Thread 3** | `FDMA` + `ALCA` | Orthogonal and local computing heuristics with inner PGD | ~8 – 12 s |
-| **Thread 4** | `WOA-BWOA` | Previous v4 swarm benchmark (Continuous WOA on GPU) | ~30 – 40 s (**Finishes at end**) |
+| **Thread 1** | `PGD-BWOA` | **Proposed v5 scheme** (Multi-Start PGD with Adam on GPU) | ~2 – 5 s (**Reports first!**) |
+| **Thread 2** | `ARJOA` + `IOJOA` + `FDMA` + `ALCA` | Offloading, orthogonal, and local heuristics with inner PGD | ~5 – 10 s |
+| **Thread 3** | `WOA-BWOA` | Swarm benchmark (Continuous WOA on GPU) | ~30 – 40 s (**Concurrent**) |
+| **Thread 4** | `PSO-BWOA` | Swarm benchmark (Continuous PSO on GPU) | ~30 – 40 s (**Concurrent**) |
 
 ### B. Worker Process Isolation & Clean Serialization
 - Managed via Python `concurrent.futures.ProcessPoolExecutor(max_workers=min(jobs, 4))`.

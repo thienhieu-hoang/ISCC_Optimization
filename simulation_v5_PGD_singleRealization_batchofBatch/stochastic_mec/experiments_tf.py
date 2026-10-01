@@ -134,31 +134,29 @@ def partition_curves_for_threads(
 ) -> list[list[tuple[str, str, str]]]:
     """Group curves into 4 balanced thread groups for single-realization runs:
     Thread 1: PGD-BWOA (Proposed v5 scheme - completes and reports first!)
-    Thread 2: ARJOA, IOJOA (Offloading heuristics with inner WOA)
-    Thread 3: FDMA, ALCA (Resource/Local heuristics with inner WOA)
-    Thread 4: WOA-BWOA, PSO-BWOA (Swarm benchmarks with inner WOA/PSO)
+    Thread 2: ARJOA, IOJOA, FDMA, ALCA (Fast heuristics with inner PGD)
+    Thread 3: WOA-BWOA (Swarm benchmark with inner continuous WOA)
+    Thread 4: PSO-BWOA (Swarm benchmark with inner continuous PSO)
     """
     c_list = list(curves)
-    g_pgd, g_offload, g_res, g_woa = [], [], [], []
+    g_pgd, g_heuristics, g_woa, g_pso = [], [], [], []
     for c in c_list:
         label = c[0].upper()
         tpc = c[1].upper()
         scheme = c[2].upper()
-        if "PGD" in label and ("MF-SIC" in scheme or "BWOA" in label):
+        if any(k in label for k in ("ARJOA", "IOJOA", "FDMA", "ALCA")):
+            g_heuristics.append(c)
+        elif "PGD" in label and ("MF-SIC" in scheme or "BWOA" in label):
             g_pgd.append(c)
-        elif "WOA" in label and ("MF-SIC" in scheme or "BWOA" in label) and "IWOA" not in label:
-            g_woa.append(c)
-        elif any(k in label for k in ("ARJOA", "IOJOA")):
-            g_offload.append(c)
-        elif any(k in label for k in ("FDMA", "ALCA")):
-            g_res.append(c)
-        elif "IWOA" in label or "PSO" in label:
+        elif "PSO" in label:
+            g_pso.append(c)
+        elif ("WOA" in label or "IWOA" in label) and ("MF-SIC" in scheme or "BWOA" in label):
             g_woa.append(c)
         else:
-            g_res.append(c)
+            g_heuristics.append(c)
 
-    # Order groups: PGD-BWOA first (Thread 1), heuristics middle (Threads 2 & 3), WOA-BWOA at end (Thread 4)
-    groups = [g for g in [g_pgd, g_offload, g_res, g_woa] if len(g) > 0]
+    # Order groups: PGD-BWOA first (Thread 1), heuristics (Thread 2), swarm benchmarks separate (Threads 3 & 4)
+    groups = [g for g in [g_pgd, g_heuristics, g_woa, g_pso] if len(g) > 0]
     return groups if groups else [c_list]
 
 
@@ -361,10 +359,10 @@ def run_sweep(
 
 DEFAULT_CURVES = [
     ("PGD-BWOA", "PGD", "MF-SIC"),
-    ("ARJOA", "WOA", "ARJOA"),
-    ("IOJOA", "WOA", "IOJOA"),
-    ("FDMA", "WOA", "FDMA"),
-    ("ALCA", "WOA", "ALCA"),
+    ("ARJOA", "PGD", "ARJOA"),
+    ("IOJOA", "PGD", "IOJOA"),
+    ("FDMA", "PGD", "FDMA"),
+    ("ALCA", "PGD", "ALCA"),
     ("WOA-BWOA", "WOA", "MF-SIC"),
     ("PSO-BWOA", "PSO", "MF-SIC"),
 ]
