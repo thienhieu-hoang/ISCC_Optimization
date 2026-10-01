@@ -68,7 +68,9 @@ def sweep_uav_density(args):
         make_topology=lambda x: fixed_topology(int(x), n_dl, n_ue),
         summary_path=_summary_paths(args, "uav_density"),
     )
-    _plot(result, "uav_density", args, [("su", "utility", "System Utility")])
+    _plot(result, "uav_density", args,
+          [("po", "offload_ratio", "Offloading Percentage"),
+           ("su", "utility", "System Utility")])
 
 
 def sweep_jammer_density(args):

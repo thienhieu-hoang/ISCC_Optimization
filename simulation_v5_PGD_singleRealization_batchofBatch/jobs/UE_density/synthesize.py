@@ -189,6 +189,9 @@ def plot_metric(
     title: str | None = None,
     log_y: bool = False,
     filter_algos: list[str] | None = None,
+    label_fontsize: float = 16,
+    tick_labelsize: float = 15,
+    tick_length: float = 4.0,
 ) -> None:
     """Render plot matching the exact default style and colors of run_job.py / plotting.py."""
     import matplotlib
@@ -220,8 +223,9 @@ def plot_metric(
             label=algo,
         )
 
-    ax.set_xlabel(xlabel)
-    ax.set_ylabel(ylabel)
+    ax.set_xlabel(xlabel, fontsize=label_fontsize)
+    ax.set_ylabel(ylabel, fontsize=label_fontsize)
+    ax.tick_params(axis="both", which="major", labelsize=tick_labelsize, length=tick_length, width=1.0)
     ax.grid(True, alpha=0.35)
     if log_y:
         ax.set_yscale("log")
