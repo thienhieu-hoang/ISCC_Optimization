@@ -32,7 +32,7 @@ Edge inference is the workload: a device senses, extracts features, and forwards
 
 The resulting mixed-integer nonlinear program couples association, powers, server frequencies, and the sensing-induced variables through interference, and is NP-hard \cite{Hoang_TCOM_2024}, so swarm heuristics \cite{book_SI2010,genetic_optim} are the usual recourse. Prior work is fragmented with respect to this setting. ISCC supplies the accuracy objective, through discriminant-gain task-oriented compression \cite{wen2024iscc} and, more recently, energy-efficient split edge inference \cite{yao2025edgeinf}, but on single-cell terrestrial topologies with deterministic geometry and no jamming \cite{wen2025survey}. Non-terrestrial designs address integrated communication and computation under uncertainty \cite{tang2025ntn}, and sensing-offloading scheduling has been studied for multi-UAV edge inference \cite{du2026uavinf}, yet both assume a single link direction and benign spectra. None combines stochastic aerial geometry, UL--DL coexistence under jamming, and an inference-accuracy objective.
 
-This letter recasts stochastic UL--DL edge inference on a SI-TNTN as an ISCC problem, contributing: (i) a planar-HPPP UAV edge-inference model with independent altitudes, jamming-aware MF-SIC and ZFBF, each UL UE sensing, compressing features at a tunable retention ratio, and partially offloading; (ii) an MINLP over delay, energy, DL rate, and accuracy; (iii) closed forms for both sensing-induced variables and a clipped water-filling compute rule, so ISCC adds no search cost; (iv) a hybrid WOA/IWOA/PSO--BWOA solver benchmarked against exhaustive search.
+This letter recasts stochastic UL--DL edge inference on a SI-TNTN as an ISCC problem, contributing: (i) a planar-HPPP UAV edge-inference model with independent altitudes, jamming-aware MF-SIC and ZFBF, each UL UE sensing, compressing features at a tunable retention ratio, and partially offloading; (ii) an MINLP over delay, energy, DL rate, and accuracy; (iii) closed forms for both sensing-induced variables and a clipped water-filling compute rule, so ISCC adds no search cost; (iv) a hybrid {\color{blue}WOA/PSO/PGD}--BWOA solver benchmarked against exhaustive search.
 
 \section{System and Signal Models}
 \label{sec:model}
@@ -289,40 +289,45 @@ The remaining continuous problems use penalty-augmented search. For UL power,
 +\nu_{\mathrm{sic}}\sum_{n,k}g_{n,k}^{\mathrm{sic}}(\vec{p})_+^2,
 \label{eq:mpc}
 \end{equation}
-where $g_{n,k}^{\mathrm{sic}}$ is the slack of \eqref{eq:sic}. For the DL powers $\vec{q}=\{q_{m',n'}\}$, we maximize $\mathbb{U}^{\tt dl}$ minus squared slacks of \eqref{eq:c-dl}. Both use WOA \cite{mirjalili2016whale}, IWOA (WOA with adaptive population resizing) \cite{Hoang_TCOM_2024}, or PSO. Binary matching uses BWOA \cite{kumar2020binary}: a whale position $x\in\mathbb{R}$ maps by $\sigma(x)=(1+e^{-\tau x})^{-1}$ to $a=\mathbf{1}\{\mathrm{rand}<\sigma(x)\}$.
+where $g_{n,k}^{\mathrm{sic}}$ is the slack of \eqref{eq:sic}. For the DL powers $\vec{q}=\{q_{m',n'}\}$, we maximize $\mathbb{U}^{\tt dl}$ minus squared slacks of \eqref{eq:c-dl}. 
+{\color{blue}Both continuous power allocations can be solved via the whale optimization algorithm (WOA) \cite{mirjalili2016whale}, particle swarm optimization (PSO), or projected gradient descent (PGD). To avoid local optima, multi-start PGD is initialized from structured seeds: $\vec{p}^\dagger$ (Lemma~\ref{lem:quasi}), $\vec{p}^{\tt max}$, and intermediate power levels in $[\mathbf{0}, \vec{p}^{\tt max}]$.} 
+Binary matching uses BWOA \cite{kumar2020binary}: a whale position $x\in\mathbb{R}$ maps by $\sigma(x)=(1+e^{-\tau x})^{-1}$ to $a=\mathbf{1}\{\mathrm{rand}<\sigma(x)\}$.
 
-The {\color{blue}inner power control} costs $\mathcal{O}(I_1 S_1 N^{\tt ul}K)$ per association that survives Lemma~\ref{lem:prune}; BWOA over $\vec{A}$ costs $\mathcal{O}(I_3 S_3 K(N^{\tt ul}+M^{\tt dl}))$ plus the surviving inner solves. The ISCC variables add only $\mathcal{O}(N^{\tt ul})$ per inner iteration (a few block-coordinate rounds of Propositions~\ref{prop:F}--\ref{prop:chi}), which is dominated by the $\mathcal{O}(I_1 S_1 N^{\tt ul}K)$ power search, so the overall order is unchanged from the atomic-task formulation. Exhaustive matching enumerates $(K+1)^{N^{\tt ul}}K^{M^{\tt dl}}$ associations.
+The {\color{blue}inner power control} costs $\mathcal{O}(I_1 S_1 N^{\tt ul}K)$ per association that survives Lemma~\ref{lem:prune}; 
+BWOA over $\vec{A}$ costs $\mathcal{O}(I_3 S_3 K(N^{\tt ul}+M^{\tt dl}))$ plus the surviving inner solves. The ISCC variables add only $\mathcal{O}(N^{\tt ul})$ per inner iteration (a few block-coordinate rounds of Propositions~\ref{prop:F}--\ref{prop:chi}), which is dominated by the $\mathcal{O}(I_1 S_1 N^{\tt ul}K)$ power search, so the overall order is unchanged from the atomic-task formulation. Exhaustive matching enumerates $(K+1)^{N^{\tt ul}}K^{M^{\tt dl}}$ associations.
 
-\begin{algorithm}[!t]
+{\begin{algorithm}[!t]
 \DontPrintSemicolon
 \KwIn{HPPP snapshot, channels $\vec{h}$, sensed tasks $\{D_n^{\tt raw},C_n^{\tt raw},\gamma_n^{\tt sen}\}$, budgets, accuracy floor $\Lambda^{\tt th}$}
 \KwOut{$\vec{\Pi}=(\vec{A}^{\tt ul},\vec{A}^{\tt dl},\vec{p},\vec{F},\vec{\rho},\vec{\chi})$}
 Force UEs with $\chi_n^{\tt min}>1$ in \eqref{eq:chimin} to local execution.\;
-Generate a BWOA population of binary association matrices.\;
-\For{each association candidate $\vec{A}$}{
-\eIf{$\mathbb{F}(\vec{A})\le\mathbb{U}^\star$}{
-discard $\vec{A}$ by Lemma~\ref{lem:prune}\;
-}{
-Set $(\rho_n,\chi_n)\leftarrow(a_n^{\tt ul},1)$.\;
-Run WOA/IWOA/PSO on $\vec{p}$ with SIJNR/SIC penalties.\;
-Alternate \eqref{eq:Fstar} with Propositions~\ref{prop:rho}--\ref{prop:chi} until $(\vec{F},\vec{\rho},\vec{\chi})$ stabilises.\;
-Evaluate $\mathbb{U}(\vec{\Pi})$ and update $\mathbb{U}^\star$.\;
+Initialize BWOA population of binary association matrices.\;
+\For{{\color{blue}iteration $t = 1, \dots, I_3$ (or until convergence)}}{
+    Prune candidates with $\mathbb{F}(\vec{A})\le\mathbb{U}^\star$ by Lemma~\ref{lem:prune}.\;
+    \textbf{{\color{blue}Batch evaluate}} surviving candidates $\vec{A}$ simultaneously:\;
+    \quad Set $(\rho_n,\chi_n)\leftarrow(a_n^{\tt ul},1)$ across the batch.\;
+    \quad Run batched {\color{blue}WOA/PSO/PGD} on $\vec{p}$ with SIJNR/SIC penalties.\;
+    \quad Alternate \eqref{eq:Fstar} with Propositions~\ref{prop:rho}--\ref{prop:chi} until $(\vec{F},\vec{\rho},\vec{\chi})$ stabilises.\;
+    \quad Evaluate batch utilities $\mathbb{U}(\vec{\Pi})$ and update $\mathbb{U}^\star$.\;
+    Update BWOA positions via encircling/spiral search and retain elite.\;
 }
-}
-Update BWOA encircling/spiral search and retain the elite whale.\;
 \Return the best $\vec{\Pi}$.\;
-\caption{Hybrid WOA/IWOA/PSO--BWOA for SI-TNTN UAV edge-inference ISCC.}
+\caption{Hybrid {\color{blue}WOA/PSO/PGD}--BWOA for SI-TNTN UAV edge-inference ISCC.}
 \label{alg:hyb}
 \end{algorithm}
+}
 
 \section{Numerical Results}
-Unless noted, $K=5$, $B_k=1$~MHz, $L=4$, $N_0=-174$~dBm/Hz, $f_c=2.4$~GHz (FSPL uses $2400$~MHz), $F_m^{\tt max}=8$~GHz, $p_n^{\tt max}=24$~dBm, $P_{m'}^{\tt max}=46$~dBm, $C_n^{\tt raw}=10^9$ cycles, $D_n^{\tt raw}=420$~kbit, $F_n^{\tt loc}\in\{0.5,0.8,1.0\}$~GHz, $\kappa_n=5\times10^{-27}$, $\xi_n=1$, $R_{\tt const}=10^8$~bit/s, and $\beta_n^{\tt t}=\beta_n^{\tt e}=\beta_n^{\tt a}=1/3$. Channels use Nakagami-$m$ ($m=2$), inverse-Gamma shadowing of shape $3$, $\alpha=2.5$, $\mathrm{PL}_0=40$~dB, $d_0=1$~m, $\eta_0=20$~dB. In $1000\times1000$~m$^2$: $\lambda_0^{\tt ul}=\lambda_0^{\tt dl}=3$, $\lambda_{\mathrm{UE}}=10$, $\lambda_{\mathrm{Q}}=2$~nodes/km$^2$, UAV altitude $[80,120]$~m, $p_q=20$~dBm, $q_k=0.8$. The sensing/ISCC parameters are $\gamma_n^{\tt sen}=10$~dB (per-UE spread $3$~dB), $\mathsf{T}_n^{\tt sen}=5$~ms, $p_n^{\tt sen}=0.1$~W, $\vartheta_n=1$, $\Lambda^{\tt th}=0.9$, and $\varpi_n=50$ cycles/bit, which by \eqref{eq:chimin} gives a retention floor $\chi_n^{\tt min}\approx0.67$. We benchmark the hybrids against exhaustive matching and against the atomic-task WOA/IWOA/PSO--BWOA framework of \cite{Hoang_TCOM_2024}, with force-all-offload (every UL UE must offload), independent offloading (IOJOA: each UE freezes a coin-flip offload bit), orthogonal access (FDMA: at most one UL UE or DL UAV per sub-channel), and all-local computing (ALCA) as additional baselines. Each metaheuristic uses $30$ search agents, and every curve averages $30$ HPPP snapshots.
+Unless noted, $K=5$, $B_k=1$~MHz, $L=4$, $N_0=-174$~dBm/Hz, $f_c=2.4$~GHz (FSPL uses $2400$~MHz), $F_m^{\tt max}=8$~GHz, $p_n^{\tt max}=24$~dBm, $P_{m'}^{\tt max}=46$~dBm, $C_n^{\tt raw}=10^9$ cycles, $D_n^{\tt raw}=420$~kbit, $F_n^{\tt loc}\in\{0.5,0.8,1.0\}$~GHz, $\kappa_n=5\times10^{-27}$, $\xi_n=1$, $R_{\tt const}=10^8$~bit/s, and $\beta_n^{\tt t}=\beta_n^{\tt e}=\beta_n^{\tt a}=1/3$. 
+Channels use Nakagami-$m$ ($m=2$), inverse-Gamma shadowing of shape $3$, $\alpha=2.5$, $\mathrm{PL}_0=40$~dB, $d_0=1$~m, $\eta_0=20$~dB. 
+In $1000\times1000$~m$^2$: {\color{blue}$\lambda_0^{\tt ul}=2, \lambda_0^{\tt dl}=1$}, 
+{\color{blue}$\lambda_{\mathrm{UE}}=20$}, $\lambda_{\mathrm{Q}}=2$~nodes/km$^2$, UAV altitude $[80,120]$~m, $p_q=20$~dBm, $q_k=0.8$. The sensing/ISCC parameters are $\gamma_n^{\tt sen}=10$~dB (per-UE spread $3$~dB), $\mathsf{T}_n^{\tt sen}=5$~ms, $p_n^{\tt sen}=0.1$~W, $\vartheta_n=1$, $\Lambda^{\tt th}=0.9$, and $\varpi_n=50$ cycles/bit, which by \eqref{eq:chimin} gives a retention floor $\chi_n^{\tt min}\approx0.67$. We benchmark the hybrids against exhaustive matching and against the atomic-task {\color{blue}WOA/PSO/PGD}--BWOA framework of \cite{Hoang_TCOM_2024}, with force-all-offload (every UL UE must offload), independent offloading (IOJOA: each UE freezes a coin-flip offload bit), orthogonal access (FDMA: at most one UL UE or DL UAV per sub-channel), and all-local computing (ALCA) as additional baselines. Each metaheuristic uses $30$ search agents, and every curve averages $30$ HPPP snapshots.
 
 % TEMPORARY DRAFT: convergence figure commented out
 % \begin{figure}[!t]
 % \centering
 % \includegraphics[width=0.62\linewidth]{figures/convergence_bwoa.png}
-% \caption{Convergence of hybrid WOA/IWOA/PSO--BWOA versus attained system utility.}
+% \caption{Convergence of hybrid WOA/PSO/PGD--BWOA versus attained system utility.}
 % \label{fig:conv}
 % \end{figure}
 
@@ -331,18 +336,18 @@ Unless noted, $K=5$, $B_k=1$~MHz, $L=4$, $N_0=-174$~dBm/Hz, $f_c=2.4$~GHz (FSPL 
 \subfloat[]{\includegraphics[width=0.49\linewidth]{figures/compare_3approaches_su.pdf}}
 \hfill
 \subfloat[]{\includegraphics[width=0.49\linewidth]{figures/compare_3approaches_time.pdf}}
-\caption{Proposed BWOA matching versus exhaustive search, $K=3$, $M^{\tt ul}=2$, $M^{\tt dl}=1$: (a) attained utility, (b) runtime, versus active-UE density.}
+\caption{Proposed BWOA matching {\color{blue}inner PGD and WOA against} exhaustive search, $K=3$: (a) attained utility, (b) runtime, versus active-UE density.}
 \label{fig:res}
 \end{figure}
 
-Fig.~\ref{fig:res}(a) shows BWOA tracking exhaustive sub-channel search, with a small gap that widens as the association space grows. Fig.~\ref{fig:res}(b) shows the corresponding runtime: exhaustive enumeration is cheaper at low density but grows steeply, whereas BWOA grows near-linearly and overtakes it as density increases. The closed-form ISCC updates leave this curve unchanged.
+Fig.~\ref{fig:res}(a) shows {\color{blue}both BWOA variants closely} tracking exhaustive sub-channel search, with a small gap that widens as the association space grows. Fig.~\ref{fig:res}(b) shows the corresponding runtime: {\color{blue}exhaustive enumeration grows steeply, whereas both BWOA variants scale near-linearly and maintain substantial time savings as density increases.}
 
 \begin{figure}[!t]
 \centering
 \subfloat[]{\includegraphics[width=0.49\linewidth]{figures/ue_density_su_v2.pdf}}
 \hfill
 \subfloat[]{\includegraphics[width=0.49\linewidth]{figures/uav_density_su_v2.pdf}}
-\caption{(a) Utility versus active-UE density for WOA/IWOA/PSO--BWOA (MF-SIC), force-all-offload, IOJOA, FDMA, and ALCA. (b) Utility versus UL UAV-server density.}
+\caption{(a) Utility versus active-UE density for {\color{blue}WOA/PSO/PGD}--BWOA (MF-SIC), force-all-offload, IOJOA, FDMA, and ALCA. (b) Utility versus UL UAV-server density.}
 \label{fig:res2}
 \end{figure}
 
@@ -353,14 +358,15 @@ Fig.~\ref{fig:res2}(a) shows aggregate utility rising with UE density, more term
 \subfloat[]{\includegraphics[width=0.49\linewidth]{figures/accuracy_delay_dual_colored.pdf}}
 \hfill
 \subfloat[]{\includegraphics[width=0.49\linewidth]{figures/retention_vs_snr_v2.pdf}}
-\caption{ISCC effects: (a) accuracy--delay frontier swept over $\beta^{\tt a}$, versus the atomic-task baseline; (b) optimal retention $\chi_n^\star$, retention floor $\chi_n^{\min}$, and fraction of offloading UEs versus mean sensing SNR.}
+\caption{ISCC effects: (a) accuracy--delay frontier swept over $\beta^{\tt a}$, versus the atomic-task baseline; (b) optimal retention $\chi_n^\star$, retention floor $\chi_n^{\min}$, and ratio of offloading UEs versus mean sensing SNR.}
 \label{fig:iscc}
 \end{figure}
 
-Fig.~\ref{fig:iscc}(a) sweeps $\beta^{\tt a}$ with $\beta^{\tt t}=\beta^{\tt e}=(1-\beta^{\tt a})/2$. At low $\beta^{\tt a}$ retention sits on its floor and accuracy equals $\Lambda^{\tt th}$, with lower delay than the atomic-task point; raising $\beta^{\tt a}$ drives $\chi_n^\star$ to unity, trading latency for accuracy along \eqref{eq:chistar}, until ISCC coincides with the atomic task. In Fig.~\ref{fig:iscc}(b), at low sensing SNR the floor \eqref{eq:chimin} exceeds one, UEs become inadmissible, and offloading collapses; above it, better sensing lowers both $\chi_n^{\min}$ and $\chi_n^\star$: higher-quality observations are compressed \emph{more}, a coupling an atomic-task model cannot express.
+{\color{blue}Fig.~\ref{fig:iscc}(a) sweeps $\beta^{\tt a}$ with $\beta^{\tt t}=\beta^{\tt e}=(1-\beta^{\tt a})/2$. At low $\beta^{\tt a}$, retention sits on its floor and accuracy equals $\Lambda^{\tt th}$, achieving the lowest latency; raising $\beta^{\tt a}$ drives $\chi_n^\star\to 1$, trading latency for accuracy along \eqref{eq:chistar}. While accuracy reaches the atomic-task level at large $\beta^{\tt a}$, ISCC preserves a lower delay throughout because partial offloading ($\rho_n \in [0,1]$) enables parallel local-and-aerial execution that the binary atomic model ($\rho_n\in\{0,1\}$) cannot exploit.}
+In Fig.~\ref{fig:iscc}(b), at low sensing SNR the floor \eqref{eq:chimin} exceeds one, UEs become inadmissible, and offloading collapses; above it, better sensing lowers both $\chi_n^{\min}$ and $\chi_n^\star$: higher-quality observations are compressed \emph{more}, a coupling an atomic-task model cannot express.
 
 \section{Conclusion}
-We recast joint UL--DL edge-inference offloading and radio resource management on a SI-TNTN as an ISCC problem combining UAV-mounted servers, planar HPPP geometry with independent altitudes, and jamming-aware MF-SIC/ZFBF SIJNR with sensing-derived tasks, partial offloading, and an inference-accuracy objective. The two sensing-induced variables admit closed forms (a three-point rule for the split and a logarithmic rule for retention), so the MINLP is still solved by the WOA/IWOA/PSO plus BWOA framework at unchanged complexity. Joint sensing-power control and sensing/communication antenna partitioning at the UAV are natural extensions.
+We recast joint UL--DL edge-inference offloading and radio resource management on a SI-TNTN as an ISCC problem combining UAV-mounted servers, planar HPPP geometry with independent altitudes, and jamming-aware MF-SIC/ZFBF SIJNR with sensing-derived tasks, partial offloading, and an inference-accuracy objective. The two sensing-induced variables admit closed forms (a three-point rule for the split and a logarithmic rule for retention), so the MINLP is still solved by the {\color{blue}WOA/PSO/PGD} plus BWOA framework at unchanged complexity. Joint sensing-power control and sensing/communication antenna partitioning at the UAV are natural extensions.
 
 \bibliographystyle{IEEEtran}
 \bibliography{Bibliography}

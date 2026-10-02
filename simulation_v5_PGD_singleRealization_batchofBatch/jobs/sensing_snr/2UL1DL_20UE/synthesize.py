@@ -89,9 +89,11 @@ def plot_retention_vs_snr(
     s = data[matched_key]
     x = np.asarray(snr_vals, dtype=float)
 
-    # Compute theoretical retention floor and threshold
-    raw_floor, g_star = compute_retention_floor(x, accuracy_threshold, accuracy_sensitivity)
-    floor_capped = np.minimum(raw_floor, 1.0)
+    # Compute continuous theoretical retention floor and exact threshold
+    x_dense = np.linspace(x[0] - 0.6, x[-1] + 0.6, 400)
+    raw_floor_dense, g_star = compute_retention_floor(x_dense, accuracy_threshold, accuracy_sensitivity)
+    floor_capped_dense = np.minimum(raw_floor_dense, 1.0)
+    print(f"[INFO] Exact boundary where chi_n^min = 1: g_star = {g_star:.4f} dB (~{g_star:.2f} dB)")
 
     fig, ax = plt.subplots(figsize=(6.4, 4.0))
 
@@ -127,10 +129,10 @@ def plot_retention_vs_snr(
             zorder=3,
         )
 
-    # Line 2: Retention floor chi_n^min
+    # Line 2: Retention floor chi_n^min (plotted continuously)
     ax.plot(
-        x,
-        floor_capped,
+        x_dense,
+        floor_capped_dense,
         color=color_blue,
         linestyle="--",
         linewidth=1.6,
@@ -278,11 +280,13 @@ def main() -> None:
         paper_fig_dir = Path(__file__).resolve().parents[4] / "ISCC_Optimization" / "figures"
         if paper_fig_dir.exists():
             dest_pdf = paper_fig_dir / "retention_vs_snr.pdf"
+            dest_pdf_v2 = paper_fig_dir / "retention_vs_snr_v2.pdf"
             dest_png = paper_fig_dir / "retention_vs_snr.png"
             try:
                 shutil.copy2(pdf_out, dest_pdf)
+                shutil.copy2(pdf_out, dest_pdf_v2)
                 shutil.copy2(png_out, dest_png)
-                print(f"[OK] Synced to paper figures:\n  {dest_pdf}\n  {dest_png}")
+                print(f"[OK] Synced to paper figures:\n  {dest_pdf}\n  {dest_pdf_v2}\n  {dest_png}")
             except Exception as e:
                 print(f"[Warning] Could not copy to paper figures: {e}")
 

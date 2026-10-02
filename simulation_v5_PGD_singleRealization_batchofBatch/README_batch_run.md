@@ -76,12 +76,54 @@ Because swarm metaheuristics require hundreds of inner evaluations while PGD-bas
 
 ---
 
-## 3. The Batches of the Inside Multi-Start PGD (GPU Tensor Data Parallelism)
+## 3. Nested-Batch GPU Tensor Architecture & Ragged Matrix Resolution
 
-Inside Thread 1 (`PGD-BWOA`) and Thread 4 (Heuristics), the continuous power allocation problem is solved by **Multi-Start Projected Gradient Descent (PGD)** on GPU.
+Inside Thread 1 (`PGD-BWOA`) and the benchmark threads, the simulation engine uses a **nested two-level 3D GPU batch tensor**:
+$$\mathbf{P} \in \mathbb{R}^{B \times S \times N_{\text{UL}}}$$
+where:
+- **Dimension 1 ($B = N_{\text{candidates}}$):** Batch of outer BWOA association candidates evaluated simultaneously in one GPU pass.
+- **Dimension 2 ($S = N_{\text{seeds}}$):** Batch of inner continuous optimization trajectories ($S = 4$ structured seeds for PGD, or $S = 15$ particles for PSO).
+- **Dimension 3 ($N_{\text{UL}}$):** Full ground UE dimension.
 
-### A. What is the "Batch" in the Inside PGD?
-In the original WOA implementation, 15 continuous whale agents explore the power search space through random spirals and prey encircling.
+---
+
+### A. The "Ragged Subproblem Dimension" Challenge
+
+Each binary association candidate $\mathbf{A}^{(b)}$ assigns a different subset of UEs to offload:
+- Candidate 1 may have **3 active offloading UEs** ($N_{\text{active}}^{(1)} = 3$).
+- Candidate 2 may have **7 active offloading UEs** ($N_{\text{active}}^{(2)} = 7$).
+- Candidate 3 may have **0 active offloading UEs** (all local computing).
+
+Because the number of optimization variables $N_{\text{active}}^{(b)}$ varies widely per outer candidate, batching multiple candidates naively creates a **ragged matrix (ragged tensor)** with irregular row dimensions.
+
+**Why Ragged Matrices Fail on GPUs:**
+1. **Broken Auto-Differentiation:** TensorFlow's `tf.GradientTape` and reverse-mode autodiff require regular, rectangular tensor memory layouts. Autodiff across ragged tensors introduces severe indexing, dynamic gather, and python-dispatch overhead.
+2. **Continuous Graph Retracing:** In dynamic graph engines (`@tf.function`), whenever tensor shapes vary across calls, TensorFlow's compiler is forced to **retrace and recompile the CUDA execution graph**, introducing $100\text{–}300\text{ ms}$ of recompilation latency per step.
+
+---
+
+### B. The Solution: Masked Full-Dimension Tensor Padding
+
+To eliminate the ragged dimension problem entirely, the engine implements **Masked Full-Dimension Tensor Padding over $N_{\text{UL}}$** ([solver_tf.py:316–334](file:///c:/Users/AT30890/Hoctap/3_ISCC_Optimization/simulation_v5_PGD_singleRealization_batchofBatch/stochastic_mec/solver_tf.py#L316-L334)):
+
+1. **Fixed Full-Dimension Tensor:** Instead of packing variable-sized active subsets, all power variables are allocated in a contiguous, rectangular 3D tensor:
+   $$\mathbf{P} \in \mathbb{R}^{B \times S \times N_{\text{UL}}}$$
+2. **GPU Boolean Offload Masking:** A static broadcasted boolean mask identifies active offloading UEs:
+   $$\text{off\_mask} = (\mathbf{u}_{\text{sub}} \ge 0) \in \{0, 1\}^{B \times 1 \times N_{\text{UL}}}$$
+3. **Exact Feasible Clamping via `tf.where`:**
+   ```python
+   pos = tf.where(off_mask, seeds, lb)
+   ```
+   - Active offloading UEs ($u_{b,n} \ge 0$) undergo gradient descent updates within their physical budget $[p_{\min}, p_{\max}]$.
+   - Inactive / local UEs ($u_{b,n} = -1$) are clamped to $p_{\min} = 0$, and their gradients are masked to zero.
+
+**Key Benefits:**
+- **Zero Graph Retracing:** Tensor dimensions remain static across the entire simulation, allowing `@tf.function` to compile once and run at maximum CUDA throughput.
+- **100% Vectorized Execution:** Evaluates all $B \times S$ trajectories simultaneously without a single Python loop.
+
+---
+
+### C. Multi-Start Structured Physical Seeds for PGD
 
 In **Multi-Start PGD**, random heuristic exploration is replaced by **directed gradient descent with Adam**, initialized from **4 structured physical seeds**:
 1. **Seed 1 ($p^{\max}$):** Full power budget (optimal in noise-limited or high-jamming regimes).
@@ -89,18 +131,10 @@ In **Multi-Start PGD**, random heuristic exploration is replaced by **directed g
 3. **Seed 3 ($p^{\text{half}}$):** Mid-range power $0.5(p_{\min} + p_{\max})$ (balanced regime).
 4. **Seed 4 ($p^{\text{low}}$):** Low power budget $p_{\min} + 0.1(p_{\max} - p_{\min})$ (interference-saving regime).
 
-These 4 seeds are stacked into a **2D GPU batch tensor**:
-$$\mathbf{P}_{\text{seeds}} \in \mathbb{R}^{4 \times K}$$
-where:
-- **Batch Dimension ($K_{\text{seeds}} = 4$):** The 4 structured seed trajectories.
-- **Feature Dimension ($K = N_{\text{active}}$):** The continuous transmit powers allocated to each active UE on its associated sub-channel.
-
-**There are ZERO Python loops over seeds.** All 4 trajectories are evaluated and updated simultaneously in parallel on the GPU.
-
 ```
                     ┌────────────────────────────────────────────────────────┐
-                    │      GPU BATCH: Multi-Start PGD (4 Structured Seeds)    │
-                    │   P_seeds = [p_max, p_dag, p_half, p_low]^T ∈ R^(4 x K) │
+                    │  NESTED GPU BATCH: B Candidates × 4 Structured Seeds   │
+                    │      P ∈ R^(B x 4 x N_UL) with Masked Padding          │
                     └──────────────────────────┬─────────────────────────────┘
                                                │
                                                ▼
@@ -112,7 +146,7 @@ where:
                                                ▼
                               [Auto-Differentiated Gradients]
                                  grads = tape.gradient(tot_loss, P)
-                                 Clip gradient norm to 10.0
+                                 Mask out inactive UEs & clip norm
                                                │
                                                ▼
                               [Batched Adam Update on GPU]
@@ -120,11 +154,11 @@ where:
                                  P_new = P - lr * m_hat / sqrt(v_hat)
                                                │
                                                ▼
-                              [Exact Box Projection to Feasible Set]
-                                 P_proj = tf.clip_by_value(P_new, P_min, P_max)
+                              [Exact Box Projection & Inactive Clamping]
+                                 P_proj = tf.where(off_mask, tf.clip_by_value(P_new, P_min, P_max), lb)
 ```
 
-### B. What Happens in One Inside PGD Batch Step on GPU
+### D. What Happens in One Inside PGD Batch Step on GPU
 
 During each iteration ($t = 1, \dots, I_{\text{pgd}}$, default $I_{\text{pgd}} = 10$), the following operations execute in parallel across all 4 seeds:
 
@@ -147,7 +181,7 @@ During each iteration ($t = 1, \dots, I_{\text{pgd}}$, default $I_{\text{pgd}} =
 5. **Selection of Best Trajectory ([optimizers_tf.py:326-337](file:///c:/Users/AT30890/Hoctap/3_ISCC_Optimization/simulation_v5_PGD_singleRealization/stochastic_mec/optimizers_tf.py#L326-L337)):**
    - After 10 iterations, the seed achieving the maximum system utility is selected via `tf.argmin` over loss, returning the optimal power allocation $\vec{p}^\star$.
 
-### C. Tabu Table Memoization (Avoiding Redundant Inner PGD Solves)
+### E. Tabu Table Memoization (Avoiding Redundant Inner PGD Solves)
 Because the outer BWOA often explores recurring association matrices $\vec{A}$ across iterations, a **Tabu memory cache (`eval_cache`)** stores previously solved associations:
 - Key: Byte string or hash of $\vec{A}$.
 - Value: Cached optimal utility $U^\star$ and optimal powers $\vec{p}^\star$.
