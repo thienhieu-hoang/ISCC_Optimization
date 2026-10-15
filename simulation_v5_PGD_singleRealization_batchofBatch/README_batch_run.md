@@ -239,3 +239,4 @@ To ensure scientific validity, all 4 threads branch from identical conditions:
 | **Level 4** | Outer BWOA Swarm Updates | GPU (CUDA) | **GPU Tensor Step + Tabu Memoization** | [solver_tf.py:360-415](file:///c:/Users/AT30890/Hoctap/3_ISCC_Optimization/simulation_v5_PGD_singleRealization/stochastic_mec/solver_tf.py#L360-L415) |
 | **Level 5** | **Inner Multi-Start PGD ($K=4$ seeds)** | **GPU (TensorFlow)** | **BATCHED TENSORS (`tf.GradientTape`)** | [optimizers_tf.py:250-338](file:///c:/Users/AT30890/Hoctap/3_ISCC_Optimization/simulation_v5_PGD_singleRealization/stochastic_mec/optimizers_tf.py#L250-L338) |
 | **Level 6** | **Physical Layer, SINR, ISCC Updates** | **GPU (TensorFlow)** | **BATCHED TENSORS (Props 1–3, SIC)** | [system_tf.py:626-680](file:///c:/Users/AT30890/Hoctap/3_ISCC_Optimization/simulation_v5_PGD_singleRealization/stochastic_mec/system_tf.py#L626-L680) |
+
