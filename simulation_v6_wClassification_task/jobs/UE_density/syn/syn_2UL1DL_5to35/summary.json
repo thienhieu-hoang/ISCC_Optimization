@@ -1,0 +1,476 @@
+{
+  "synthesized_job": "UE_density_2UL1DL_5to35",
+  "n_ul": 2,
+  "n_dl": 1,
+  "source_folders": [
+    {
+      "folder": "pureMemoi_2UL1DL_5_10",
+      "result_dir": "result_1",
+      "x_points": [
+        5.0,
+        10.0
+      ]
+    },
+    {
+      "folder": "pureMemoi_2UL1DL_15",
+      "result_dir": "result_1",
+      "x_points": [
+        15.0
+      ]
+    },
+    {
+      "folder": "pureMemoi_2UL1DL_20",
+      "result_dir": "result_1",
+      "x_points": [
+        20.0
+      ]
+    },
+    {
+      "folder": "pureMemoi_2UL1DL_25",
+      "result_dir": "result_1",
+      "x_points": [
+        25.0
+      ]
+    },
+    {
+      "folder": "pureMemoi_2UL1DL_30",
+      "result_dir": "result_1",
+      "x_points": [
+        30.0
+      ]
+    },
+    {
+      "folder": "pureMemoi_2UL1DL_35",
+      "result_dir": "result_1",
+      "x_points": [
+        35.0
+      ]
+    }
+  ],
+  "x": [
+    5.0,
+    10.0,
+    15.0,
+    20.0,
+    25.0,
+    30.0,
+    35.0
+  ],
+  "algorithms": [
+    "PGD-BWOA",
+    "WOA-BWOA",
+    "PSO-BWOA",
+    "ARJOA",
+    "IOJOA",
+    "FDMA",
+    "ALCA"
+  ],
+  "summary": {
+    "5": {
+      "PGD-BWOA": {
+        "utility": 3.31,
+        "offload_ratio": 1.0,
+        "mean_accuracy": 0.9608,
+        "mean_norm_delay": 0.2703,
+        "total_energy": 0.2036,
+        "runtime_s": 112.49
+      },
+      "WOA-BWOA": {
+        "utility": 3.3154,
+        "offload_ratio": 1.0,
+        "mean_accuracy": 0.9608,
+        "mean_norm_delay": 0.2631,
+        "total_energy": 0.2245,
+        "runtime_s": 335.65
+      },
+      "PSO-BWOA": {
+        "utility": 3.3156,
+        "offload_ratio": 1.0,
+        "mean_accuracy": 0.9608,
+        "mean_norm_delay": 0.2639,
+        "total_energy": 0.2197,
+        "runtime_s": 311.9
+      },
+      "ARJOA": {
+        "utility": 3.31,
+        "offload_ratio": 1.0,
+        "mean_accuracy": 0.9608,
+        "mean_norm_delay": 0.2703,
+        "total_energy": 0.2036,
+        "runtime_s": 60.72
+      },
+      "IOJOA": {
+        "utility": 2.3624,
+        "offload_ratio": 0.5,
+        "mean_accuracy": 0.9477,
+        "mean_norm_delay": 0.4628,
+        "total_energy": 3.5636,
+        "runtime_s": 55.41
+      },
+      "FDMA": {
+        "utility": 3.2782,
+        "offload_ratio": 1.0,
+        "mean_accuracy": 0.9608,
+        "mean_norm_delay": 0.2722,
+        "total_energy": 0.241,
+        "runtime_s": 48.32
+      },
+      "ALCA": {
+        "utility": 1.1443,
+        "offload_ratio": 0.0,
+        "mean_accuracy": 0.9406,
+        "mean_norm_delay": 0.8578,
+        "total_energy": 7.6409,
+        "runtime_s": 48.21
+      }
+    },
+    "10": {
+      "PGD-BWOA": {
+        "utility": 6.1116,
+        "offload_ratio": 1.0,
+        "mean_accuracy": 0.9572,
+        "mean_norm_delay": 0.3792,
+        "total_energy": 0.4033,
+        "runtime_s": 229.32
+      },
+      "WOA-BWOA": {
+        "utility": 6.1172,
+        "offload_ratio": 1.0,
+        "mean_accuracy": 0.9572,
+        "mean_norm_delay": 0.375,
+        "total_energy": 0.4445,
+        "runtime_s": 1047.08
+      },
+      "PSO-BWOA": {
+        "utility": 6.12,
+        "offload_ratio": 1.0,
+        "mean_accuracy": 0.9572,
+        "mean_norm_delay": 0.3739,
+        "total_energy": 0.445,
+        "runtime_s": 705.6
+      },
+      "ARJOA": {
+        "utility": 6.1736,
+        "offload_ratio": 1.0,
+        "mean_accuracy": 0.9572,
+        "mean_norm_delay": 0.3824,
+        "total_energy": 0.4763,
+        "runtime_s": 228.25
+      },
+      "IOJOA": {
+        "utility": 4.4413,
+        "offload_ratio": 0.5,
+        "mean_accuracy": 0.9443,
+        "mean_norm_delay": 0.5069,
+        "total_energy": 9.1649,
+        "runtime_s": 276.65
+      },
+      "FDMA": {
+        "utility": 4.4001,
+        "offload_ratio": 0.5,
+        "mean_accuracy": 0.9446,
+        "mean_norm_delay": 0.5207,
+        "total_energy": 7.7482,
+        "runtime_s": 165.42
+      },
+      "ALCA": {
+        "utility": 2.0962,
+        "offload_ratio": 0.0,
+        "mean_accuracy": 0.938,
+        "mean_norm_delay": 0.8736,
+        "total_energy": 15.4396,
+        "runtime_s": 120.06
+      }
+    },
+    "15": {
+      "PGD-BWOA": {
+        "utility": 7.1259,
+        "offload_ratio": 1.0,
+        "mean_accuracy": 0.973,
+        "mean_norm_delay": 0.5366,
+        "total_energy": 6.0251,
+        "runtime_s": 396.42
+      },
+      "WOA-BWOA": {
+        "utility": 7.1204,
+        "offload_ratio": 1.0,
+        "mean_accuracy": 0.973,
+        "mean_norm_delay": 0.5357,
+        "total_energy": 6.038,
+        "runtime_s": 1299.75
+      },
+      "PSO-BWOA": {
+        "utility": 7.1244,
+        "offload_ratio": 1.0,
+        "mean_accuracy": 0.973,
+        "mean_norm_delay": 0.5376,
+        "total_energy": 6.0148,
+        "runtime_s": 1270.57
+      },
+      "ARJOA": {
+        "utility": 7.1119,
+        "offload_ratio": 1.0,
+        "mean_accuracy": 0.9748,
+        "mean_norm_delay": 0.7128,
+        "total_energy": 1.0463,
+        "runtime_s": 726.59
+      },
+      "IOJOA": {
+        "utility": 5.3305,
+        "offload_ratio": 0.4,
+        "mean_accuracy": 0.9584,
+        "mean_norm_delay": 0.6338,
+        "total_energy": 12.968,
+        "runtime_s": 249.51
+      },
+      "FDMA": {
+        "utility": 5.3999,
+        "offload_ratio": 0.4,
+        "mean_accuracy": 0.9584,
+        "mean_norm_delay": 0.6113,
+        "total_energy": 14.4429,
+        "runtime_s": 224.03
+      },
+      "ALCA": {
+        "utility": 3.3958,
+        "offload_ratio": 0.0,
+        "mean_accuracy": 0.9472,
+        "mean_norm_delay": 0.7982,
+        "total_energy": 22.8436,
+        "runtime_s": 201.13
+      }
+    },
+    "20": {
+      "PGD-BWOA": {
+        "utility": 7.4343,
+        "offload_ratio": 0.8333,
+        "mean_accuracy": 0.9687,
+        "mean_norm_delay": 0.6394,
+        "total_energy": 11.8633,
+        "runtime_s": 426.62
+      },
+      "WOA-BWOA": {
+        "utility": 7.4341,
+        "offload_ratio": 0.8333,
+        "mean_accuracy": 0.9687,
+        "mean_norm_delay": 0.6389,
+        "total_energy": 11.8709,
+        "runtime_s": 1432.29
+      },
+      "PSO-BWOA": {
+        "utility": 7.4343,
+        "offload_ratio": 0.8333,
+        "mean_accuracy": 0.9687,
+        "mean_norm_delay": 0.6393,
+        "total_energy": 11.8646,
+        "runtime_s": 1342.21
+      },
+      "ARJOA": {
+        "utility": 6.8927,
+        "offload_ratio": 1.0,
+        "mean_accuracy": 0.95,
+        "mean_norm_delay": 0.9621,
+        "total_energy": 1.3104,
+        "runtime_s": 2184.24
+      },
+      "IOJOA": {
+        "utility": 6.1741,
+        "offload_ratio": 0.4167,
+        "mean_accuracy": 0.959,
+        "mean_norm_delay": 0.5783,
+        "total_energy": 26.3878,
+        "runtime_s": 1061.49
+      },
+      "FDMA": {
+        "utility": 5.8758,
+        "offload_ratio": 0.3333,
+        "mean_accuracy": 0.9544,
+        "mean_norm_delay": 0.5744,
+        "total_energy": 23.9361,
+        "runtime_s": 1289.2
+      },
+      "ALCA": {
+        "utility": 3.7737,
+        "offload_ratio": 0.0,
+        "mean_accuracy": 0.946,
+        "mean_norm_delay": 0.8002,
+        "total_energy": 34.4395,
+        "runtime_s": 1241.89
+      }
+    },
+    "25": {
+      "PGD-BWOA": {
+        "utility": 10.5236,
+        "offload_ratio": 0.9333,
+        "mean_accuracy": 0.9664,
+        "mean_norm_delay": 0.5895,
+        "total_energy": 11.9643,
+        "runtime_s": 2416.24
+      },
+      "WOA-BWOA": {
+        "utility": 10.4427,
+        "offload_ratio": 0.9333,
+        "mean_accuracy": 0.9662,
+        "mean_norm_delay": 0.6028,
+        "total_energy": 12.0735,
+        "runtime_s": 5238.65
+      },
+      "PSO-BWOA": {
+        "utility": 10.5295,
+        "offload_ratio": 0.9333,
+        "mean_accuracy": 0.9664,
+        "mean_norm_delay": 0.5878,
+        "total_energy": 11.9685,
+        "runtime_s": 6474.87
+      },
+      "ARJOA": {
+        "utility": 10.1296,
+        "offload_ratio": 1.0,
+        "mean_accuracy": 0.9645,
+        "mean_norm_delay": 0.9158,
+        "total_energy": 1.2777,
+        "runtime_s": 6917.55
+      },
+      "IOJOA": {
+        "utility": 8.552,
+        "offload_ratio": 0.4667,
+        "mean_accuracy": 0.9594,
+        "mean_norm_delay": 0.6794,
+        "total_energy": 17.6867,
+        "runtime_s": 2593.85
+      },
+      "FDMA": {
+        "utility": 7.8244,
+        "offload_ratio": 0.2667,
+        "mean_accuracy": 0.9522,
+        "mean_norm_delay": 0.6247,
+        "total_energy": 24.8504,
+        "runtime_s": 2811.69
+      },
+      "ALCA": {
+        "utility": 5.652,
+        "offload_ratio": 0.0,
+        "mean_accuracy": 0.9461,
+        "mean_norm_delay": 0.8044,
+        "total_energy": 32.5443,
+        "runtime_s": 1873.1
+      }
+    },
+    "30": {
+      "PGD-BWOA": {
+        "utility": 11.0803,
+        "offload_ratio": 0.8889,
+        "mean_accuracy": 0.9543,
+        "mean_norm_delay": 0.6507,
+        "total_energy": 15.2027,
+        "runtime_s": 3551.34
+      },
+      "WOA-BWOA": {
+        "utility": 11.0034,
+        "offload_ratio": 0.8889,
+        "mean_accuracy": 0.9536,
+        "mean_norm_delay": 0.6458,
+        "total_energy": 15.7496,
+        "runtime_s": 9714.52
+      },
+      "PSO-BWOA": {
+        "utility": 11.0542,
+        "offload_ratio": 0.8889,
+        "mean_accuracy": 0.9534,
+        "mean_norm_delay": 0.6616,
+        "total_energy": 15.3641,
+        "runtime_s": 16608.77
+      },
+      "ARJOA": {
+        "utility": 10.4181,
+        "offload_ratio": 1.0,
+        "mean_accuracy": 0.9534,
+        "mean_norm_delay": 1.069,
+        "total_energy": 1.8302,
+        "runtime_s": 4756.13
+      },
+      "IOJOA": {
+        "utility": 8.566,
+        "offload_ratio": 0.3889,
+        "mean_accuracy": 0.9441,
+        "mean_norm_delay": 0.7221,
+        "total_energy": 25.3582,
+        "runtime_s": 754.64
+      },
+      "FDMA": {
+        "utility": 7.497,
+        "offload_ratio": 0.2222,
+        "mean_accuracy": 0.9449,
+        "mean_norm_delay": 0.7493,
+        "total_energy": 32.8826,
+        "runtime_s": 676.43
+      },
+      "ALCA": {
+        "utility": 5.6953,
+        "offload_ratio": 0.0,
+        "mean_accuracy": 0.9388,
+        "mean_norm_delay": 0.8602,
+        "total_energy": 37.9919,
+        "runtime_s": 676.2
+      }
+    },
+    "35": {
+      "PGD-BWOA": {
+        "utility": 12.4028,
+        "offload_ratio": 0.9091,
+        "mean_accuracy": 0.961,
+        "mean_norm_delay": 0.583,
+        "total_energy": 40.0924,
+        "runtime_s": 1156.24
+      },
+      "WOA-BWOA": {
+        "utility": 12.3996,
+        "offload_ratio": 0.9091,
+        "mean_accuracy": 0.9609,
+        "mean_norm_delay": 0.5805,
+        "total_energy": 40.4126,
+        "runtime_s": 4022.72
+      },
+      "PSO-BWOA": {
+        "utility": 12.4597,
+        "offload_ratio": 0.9091,
+        "mean_accuracy": 0.9612,
+        "mean_norm_delay": 0.5796,
+        "total_energy": 39.6393,
+        "runtime_s": 7666.27
+      },
+      "ARJOA": {
+        "utility": 9.195,
+        "offload_ratio": 1.0,
+        "mean_accuracy": 0.9598,
+        "mean_norm_delay": 1.5748,
+        "total_energy": 2.5563,
+        "runtime_s": 4335.15
+      },
+      "IOJOA": {
+        "utility": 10.0101,
+        "offload_ratio": 0.3636,
+        "mean_accuracy": 0.9509,
+        "mean_norm_delay": 0.7501,
+        "total_energy": 41.011,
+        "runtime_s": 938.96
+      },
+      "FDMA": {
+        "utility": 9.2555,
+        "offload_ratio": 0.1818,
+        "mean_accuracy": 0.9473,
+        "mean_norm_delay": 0.7161,
+        "total_energy": 50.4852,
+        "runtime_s": 938.85
+      },
+      "ALCA": {
+        "utility": 7.0812,
+        "offload_ratio": 0.0,
+        "mean_accuracy": 0.9431,
+        "mean_norm_delay": 0.8349,
+        "total_energy": 59.7062,
+        "runtime_s": 931.31
+      }
+    }
+  }
+}

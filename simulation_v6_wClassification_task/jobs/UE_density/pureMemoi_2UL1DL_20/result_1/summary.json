@@ -1,0 +1,50 @@
+{
+  "parameter": "Active-UE Density [$\\times 10^{-6}/m^2$]",
+  "n_realizations": 1,
+  "points": {
+    "20": {
+      "PGD-BWOA": {
+        "utility": 7.4343,
+        "offloaded_pct": 83.3,
+        "runtime_s": 426.62,
+        "summary": "U = +7.4343   offloaded = 83.3 %   t = 426.62 s"
+      },
+      "ARJOA": {
+        "utility": 6.8927,
+        "offloaded_pct": 100.0,
+        "runtime_s": 2184.24,
+        "summary": "U = +6.8927   offloaded = 100.0 %   t = 2184.24 s"
+      },
+      "IOJOA": {
+        "utility": 6.1741,
+        "offloaded_pct": 41.7,
+        "runtime_s": 1061.49,
+        "summary": "U = +6.1741   offloaded = 41.7 %   t = 1061.49 s"
+      },
+      "FDMA": {
+        "utility": 5.8758,
+        "offloaded_pct": 33.3,
+        "runtime_s": 1289.2,
+        "summary": "U = +5.8758   offloaded = 33.3 %   t = 1289.20 s"
+      },
+      "ALCA": {
+        "utility": 3.7737,
+        "offloaded_pct": 0.0,
+        "runtime_s": 1241.89,
+        "summary": "U = +3.7737   offloaded = 0.0 %   t = 1241.89 s"
+      },
+      "WOA-BWOA": {
+        "utility": 7.4341,
+        "offloaded_pct": 83.3,
+        "runtime_s": 1432.29,
+        "summary": "U = +7.4341   offloaded = 83.3 %   t = 1432.29 s"
+      },
+      "PSO-BWOA": {
+        "utility": 7.4343,
+        "offloaded_pct": 83.3,
+        "runtime_s": 1342.21,
+        "summary": "U = +7.4343   offloaded = 83.3 %   t = 1342.21 s"
+      }
+    }
+  }
+}

@@ -1,0 +1,305 @@
+{
+  "synthesized_job": "compare_exhaustive_2to8UE",
+  "subchannels": 3,
+  "n_ul": 2,
+  "n_dl": 1,
+  "source_folders": [
+    {
+      "folder": "BWOA_3subc_2UL1DL_2to4UE",
+      "result_dir": "result_1",
+      "x_points": [
+        2.0,
+        3.0,
+        4.0
+      ]
+    },
+    {
+      "folder": "BWOA_3subc_2UL1DL_5UE",
+      "result_dir": "result_1",
+      "x_points": [
+        5.0
+      ]
+    },
+    {
+      "folder": "BWOA_3subc_2UL1DL_6UE",
+      "result_dir": "result_1",
+      "x_points": [
+        6.0
+      ]
+    },
+    {
+      "folder": "BWOA_3subc_2UL1DL_7UE",
+      "result_dir": "result_1",
+      "x_points": [
+        7.0
+      ]
+    },
+    {
+      "folder": "BWOA_3subc_2UL1DL_8UE",
+      "result_dir": "result_1",
+      "x_points": [
+        8.0
+      ]
+    },
+    {
+      "folder": "exhaustive_3sub_2UL1DL_2to4UE",
+      "result_dir": "result_1",
+      "x_points": [
+        2.0,
+        3.0,
+        4.0
+      ]
+    },
+    {
+      "folder": "exhaustive_3sub_2UL1DL_5UE",
+      "result_dir": "result_1",
+      "x_points": [
+        5.0
+      ]
+    },
+    {
+      "folder": "exhaustive_3sub_2UL1DL_6UE",
+      "result_dir": "result_1",
+      "x_points": [
+        6.0
+      ]
+    },
+    {
+      "folder": "exhaustive_3sub_2UL1DL_7UE",
+      "result_dir": "result_1",
+      "x_points": [
+        7.0
+      ]
+    },
+    {
+      "folder": "exhaustive_3sub_2UL1DL_8UE",
+      "result_dir": "result_1",
+      "x_points": [
+        8.0
+      ]
+    },
+    {
+      "folder": "PGD_BWOA_3subc_2UL1DL_2to4UE",
+      "result_dir": "result_1",
+      "x_points": [
+        2.0,
+        3.0,
+        4.0
+      ]
+    },
+    {
+      "folder": "PGD_BWOA_3subc_2UL1DL_5UE",
+      "result_dir": "result_1",
+      "x_points": [
+        5.0
+      ]
+    },
+    {
+      "folder": "PGD_BWOA_3subc_2UL1DL_6UE",
+      "result_dir": "result_1",
+      "x_points": [
+        6.0
+      ]
+    },
+    {
+      "folder": "PGD_BWOA_3subc_2UL1DL_7UE",
+      "result_dir": "result_1",
+      "x_points": [
+        7.0
+      ]
+    },
+    {
+      "folder": "PGD_BWOA_3subc_2UL1DL_8UE",
+      "result_dir": "result_1",
+      "x_points": [
+        8.0
+      ]
+    }
+  ],
+  "x": [
+    2.0,
+    3.0,
+    4.0,
+    5.0,
+    6.0,
+    7.0,
+    8.0
+  ],
+  "algorithms": [
+    "PGD-BWOA",
+    "WOA-BWOA",
+    "EX"
+  ],
+  "summary": {
+    "2": {
+      "PGD-BWOA": {
+        "utility": 1.3078,
+        "runtime_s": 7.0222,
+        "offload_ratio": 1.0,
+        "gap_pct": 0.005
+      },
+      "WOA-BWOA": {
+        "utility": 1.3078,
+        "runtime_s": 11.2857,
+        "offload_ratio": 1.0,
+        "gap_pct": 0.0
+      },
+      "EX": {
+        "utility": 1.3078,
+        "runtime_s": 11.2464,
+        "offload_ratio": 1.0,
+        "gap_pct": 0.0
+      }
+    },
+    "3": {
+      "PGD-BWOA": {
+        "utility": 1.8819,
+        "runtime_s": 11.3169,
+        "offload_ratio": 1.0,
+        "gap_pct": 0.0
+      },
+      "WOA-BWOA": {
+        "utility": 1.8819,
+        "runtime_s": 23.4972,
+        "offload_ratio": 1.0,
+        "gap_pct": 0.0
+      },
+      "EX": {
+        "utility": 1.8819,
+        "runtime_s": 25.2941,
+        "offload_ratio": 1.0,
+        "gap_pct": 0.0
+      }
+    },
+    "4": {
+      "PGD-BWOA": {
+        "utility": 1.6369,
+        "runtime_s": 18.4842,
+        "offload_ratio": 0.6667,
+        "gap_pct": 0.0
+      },
+      "WOA-BWOA": {
+        "utility": 1.6369,
+        "runtime_s": 60.46,
+        "offload_ratio": 0.6667,
+        "gap_pct": 0.0
+      },
+      "EX": {
+        "utility": 1.6369,
+        "runtime_s": 133.7247,
+        "offload_ratio": 0.6667,
+        "gap_pct": 0.0
+      }
+    },
+    "5": {
+      "PGD-BWOA": {
+        "utility": 2.5009,
+        "runtime_s": 39.1447,
+        "offload_ratio": 0.75,
+        "gap_pct": 0.192
+      },
+      "WOA-BWOA": {
+        "utility": 2.5017,
+        "runtime_s": 180.4859,
+        "offload_ratio": 0.75,
+        "gap_pct": 0.162
+      },
+      "EX": {
+        "utility": 2.5057,
+        "runtime_s": 729.1668,
+        "offload_ratio": 0.75,
+        "gap_pct": 0.0
+      }
+    },
+    "6": {
+      "PGD-BWOA": {
+        "utility": 3.5042,
+        "runtime_s": 71.4957,
+        "offload_ratio": 0.8,
+        "gap_pct": 1.2
+      },
+      "WOA-BWOA": {
+        "utility": 3.5357,
+        "runtime_s": 158.8792,
+        "offload_ratio": 0.8,
+        "gap_pct": 0.313
+      },
+      "EX": {
+        "utility": 3.5468,
+        "runtime_s": 4411.6305,
+        "offload_ratio": 0.8,
+        "gap_pct": 0.0
+      }
+    },
+    "7": {
+      "PGD-BWOA": {
+        "utility": 2.9724,
+        "runtime_s": 62.5554,
+        "offload_ratio": 0.8,
+        "gap_pct": 1.285
+      },
+      "WOA-BWOA": {
+        "utility": 3.0123,
+        "runtime_s": 226.4555,
+        "offload_ratio": 0.8,
+        "gap_pct": 0.0
+      },
+      "EX": {
+        "utility": 3.0111,
+        "runtime_s": 6380.2697,
+        "offload_ratio": 0.8,
+        "gap_pct": 0.0
+      }
+    },
+    "8": {
+      "PGD-BWOA": {
+        "utility": 4.1517,
+        "runtime_s": 72.6654,
+        "offload_ratio": 1.0,
+        "gap_pct": 5.988
+      },
+      "WOA-BWOA": {
+        "utility": 4.3238,
+        "runtime_s": 406.7765,
+        "offload_ratio": 1.0,
+        "gap_pct": 2.088
+      },
+      "EX": {
+        "utility": 4.4161,
+        "runtime_s": 31869.9216,
+        "offload_ratio": 1.0,
+        "gap_pct": 0.0
+      }
+    }
+  },
+  "optimality_gap_pct": {
+    "2": {
+      "PGD-BWOA": 0.005,
+      "WOA-BWOA": 0.0
+    },
+    "3": {
+      "PGD-BWOA": 0.0,
+      "WOA-BWOA": 0.0
+    },
+    "4": {
+      "PGD-BWOA": 0.0,
+      "WOA-BWOA": 0.0
+    },
+    "5": {
+      "PGD-BWOA": 0.192,
+      "WOA-BWOA": 0.162
+    },
+    "6": {
+      "PGD-BWOA": 1.2,
+      "WOA-BWOA": 0.313
+    },
+    "7": {
+      "PGD-BWOA": 1.285,
+      "WOA-BWOA": -0.041
+    },
+    "8": {
+      "PGD-BWOA": 5.988,
+      "WOA-BWOA": 2.088
+    }
+  }
+}

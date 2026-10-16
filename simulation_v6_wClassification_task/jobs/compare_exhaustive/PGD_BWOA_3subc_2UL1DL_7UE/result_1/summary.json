@@ -1,0 +1,24 @@
+{
+  "job": "PGD-BWOA",
+  "densities": [
+    7
+  ],
+  "subchannels": 3,
+  "ul_cells": 2,
+  "dl_cells": 1,
+  "realizations": 1,
+  "seed": 2025,
+  "records": [
+    {
+      "density": 7,
+      "realization": 1,
+      "seed": 2025,
+      "topo_id": "14682",
+      "chan_id": "33726",
+      "utility": 2.9724,
+      "runtime_s": 62.56,
+      "offload_ratio": 0.8,
+      "n_cases": 3072
+    }
+  ]
+}
