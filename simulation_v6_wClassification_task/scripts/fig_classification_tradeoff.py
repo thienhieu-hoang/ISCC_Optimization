@@ -2,7 +2,7 @@
 """Fig. 12 -- Empirical Digit Classification (MNIST 0-9) Task Simulation.
 
 Evaluates and compares:
-1. Empirical Top-1 Accuracy vs. Feature Retention Ratio (chi) across sensing SNRs.
+1. Empirical Classification Accuracy vs. Feature Retention Ratio (chi) across sensing SNRs.
 2. Split vs. No-Split Performance (All-Local vs. Raw Offload vs. ISCC Split Computing)
    in terms of end-to-end latency, energy consumption, and system utility.
 3. Accuracy--Delay Pareto Frontier parameterized by accuracy preference weight beta^a.
@@ -71,7 +71,7 @@ def run_classification_experiments(args: argparse.Namespace) -> dict:
     # --------------------------------------------------------------------------
     # 1. Empirical Accuracy vs. Feature Retention Ratio (chi)
     # --------------------------------------------------------------------------
-    print("\n[1/4] Evaluating Top-1 Accuracy vs. Feature Retention Ratio (chi)...")
+    print("\n[1/4] Evaluating Classification Accuracy vs. Feature Retention Ratio (chi)...")
     chi_list = [round(float(k) / 16.0, 4) for k in range(1, 17)]
     snr_levels = [10.0, 15.0]
 
@@ -278,7 +278,7 @@ def plot_classification_figures(data: dict, out_dir: Path) -> None:
 
     ax.axhline(90.0, color="gray", ls=":", lw=1.2, label="Accuracy Floor $\\Lambda^{\\tt th}=90\\%$")
     ax.set_xlabel("Feature Retention Ratio $\\chi_n$")
-    ax.set_ylabel("Top-1 Accuracy [%]")
+    ax.set_ylabel("Classification Accuracy [%]")
     ax.set_xlim(0.0, 1.02)
     ax.set_ylim(55.0, 101.5)
     ax.grid(True)
@@ -288,19 +288,55 @@ def plot_classification_figures(data: dict, out_dir: Path) -> None:
     plt.close(fig)
 
     # --------------------------------------------------------------------------
+    # Figure 1b: Accuracy vs. Retention with RAW UNCALIBRATED Theory (Lambda = 1 - e^(-chi * Gamma))
+    # --------------------------------------------------------------------------
+    fig_uncal, ax_uncal = plt.subplots(figsize=(6.4, 4.2))
+    for idx, snr in enumerate(d1["snr_levels"]):
+        label_snr = f"{snr:g}dB"
+        c = colors[idx]
+        emp = np.array(d1["empirical"][label_snr]) * 100.0
+        l_sen = float(np.log2(1.0 + 10.0 ** (snr / 10.0)))
+        raw_theo = (1.0 - np.exp(-1.0 * np.array(chi) * l_sen)) * 100.0
+        ax_uncal.plot(chi, emp, marker="o", color=c, lw=1.8, ms=6.5, label=f"Empirical MNIST ({snr} dB)")
+        ax_uncal.plot(chi, raw_theo, ls="--", color=c, lw=1.5, alpha=0.85, label=f"Raw Theory ({snr} dB)")
+
+    ax_uncal.axhline(90.0, color="gray", ls=":", lw=1.2, label=r"Accuracy Floor $\Lambda^{\tt th}=90\%$")
+    ax_uncal.set_xlabel(r"Feature Retention Ratio $\chi_n$")
+    ax_uncal.set_ylabel("Classification Accuracy [%]")
+    ax_uncal.set_xlim(0.0, 1.02)
+    ax_uncal.set_ylim(15.0, 102.0)
+    ax_uncal.grid(True)
+    ax_uncal.legend(loc="lower right", fontsize=10.0, framealpha=0.9)
+
+    save_figure(fig_uncal, out_dir / "classification_accuracy_vs_retention_uncalibrated")
+    plt.close(fig_uncal)
+
+
+    # --------------------------------------------------------------------------
     # Figure 2: Split vs. No-Split End-to-End Latency Comparison (0 - 4 Mbps)
     # --------------------------------------------------------------------------
     fig, ax = plt.subplots(figsize=(6.4, 4.2))
     d2 = data["split_vs_nosplit"]
     rates = d2["rates_mbps"]
     schemes = d2["schemes"]
+    d2b = data["split_partial_rho"]
+    schemes_rho = d2b["schemes"]
+
+    # Dynamically extract mean empirical accuracies from the simulation benchmark (.json):
+    acc_chi05 = float(np.mean(schemes["ISCC Split (chi=0.5)"]["acc"]))
+    acc_chi025 = float(np.mean(schemes["ISCC Split (chi=0.25)"]["acc"]))
+    acc_chi0125 = float(np.mean(schemes["ISCC Split (chi=0.125)"]["acc"]))
+
+    acc_rho10 = float(np.mean(schemes_rho["ISCC Split (rho=1.0)"]["acc"]))
+    acc_rho05 = float(np.mean(schemes_rho["ISCC Split (rho=0.5)"]["acc"]))
+    acc_rho025 = float(np.mean(schemes_rho["ISCC Split (rho=0.25)"]["acc"]))
 
     scheme_styles = [
-        ("All-Local (ALCA)", DARK, "--", "s", "All-Local (ALCA, $\\rho=0$)"),
-        ("Raw Offload (Atomic)", VERM, "-.", "^", "Raw Offload (Atomic, $\\rho=1$)"),
-        ("ISCC Split (chi=0.5)", BLUE, "-", "o", "ISCC Split ($\\chi=0.50$, $\\rho=1$, Acc 95.5%)"),
-        ("ISCC Split (chi=0.25)", GREEN, "-", "d", "ISCC Split ($\\chi=0.25$, $\\rho=1$, Acc 86.0%)"),
-        ("ISCC Split (chi=0.125)", PURP, "-", "v", "ISCC Split ($\\chi=0.125$, $\\rho=1$, Acc 72.0%)"),
+        ("All-Local (ALCA)", DARK, "--", "s", r"All-Local (ALCA, $\rho=0$)"),
+        ("Raw Offload (Atomic)", VERM, "-.", "^", r"Raw Offload (Atomic, $\rho=1$)"),
+        ("ISCC Split (chi=0.5)", BLUE, "-", "o", f"ISCC Split ($\\chi=0.50$, $\\rho=1$, Acc {acc_chi05:.1f}%)"),
+        ("ISCC Split (chi=0.25)", GREEN, "-", "d", f"ISCC Split ($\\chi=0.25$, $\\rho=1$, Acc {acc_chi025:.1f}%)"),
+        ("ISCC Split (chi=0.125)", PURP, "-", "v", f"ISCC Split ($\\chi=0.125$, $\\rho=1$, Acc {acc_chi0125:.1f}%)"),
     ]
 
     for key, c, ls, mk, label in scheme_styles:
@@ -351,11 +387,11 @@ def plot_classification_figures(data: dict, out_dir: Path) -> None:
     schemes_rho = d2b["schemes"]
 
     rho_styles = [
-        ("All-Local (ALCA)", DARK, "--", "s", "All-Local (ALCA, $\\rho=0$)"),
-        ("Raw Offload (Atomic)", VERM, "-.", "^", "Raw Offload (Atomic, $\\chi=1, \\rho=1$)"),
-        ("ISCC Split (rho=1.0)", GREEN, "-", "d", "ISCC Split ($\\chi=0.25, \\rho=1.0$)"),
-        ("ISCC Split (rho=0.5)", GOLD, "-", "p", "ISCC Split ($\\chi=0.25, \\rho=0.5$)"),
-        ("ISCC Split (rho=0.25)", WINE, "-", "X", "ISCC Split ($\\chi=0.25, \\rho=0.25$)"),
+        ("All-Local (ALCA)", DARK, "--", "s", r"All-Local (ALCA, $\rho=0$)"),
+        ("Raw Offload (Atomic)", VERM, "-.", "^", r"Raw Offload (Atomic, $\chi=1, \rho=1$)"),
+        ("ISCC Split (rho=1.0)", GREEN, "-", "d", f"ISCC Split ($\\chi=0.25, \\rho=1.0$, Acc {acc_rho10:.1f}%)"),
+        ("ISCC Split (rho=0.5)", GOLD, "-", "p", f"ISCC Split ($\\chi=0.25, \\rho=0.5$, Acc {acc_rho05:.1f}%)"),
+        ("ISCC Split (rho=0.25)", WINE, "-", "X", f"ISCC Split ($\\chi=0.25, \\rho=0.25$, Acc {acc_rho025:.1f}%)"),
     ]
 
     for key, c, ls, mk, label in rho_styles:
@@ -366,7 +402,7 @@ def plot_classification_figures(data: dict, out_dir: Path) -> None:
     ax.set_xlim(0.1, 4.2)
     ax.set_ylim(150.0, 3350.0)
     ax.grid(True)
-    ax.legend(loc="upper right", fontsize=10.5, framealpha=0.92)
+    ax.legend(loc="upper right", fontsize=10.0, framealpha=0.92)
 
     # Inset zoom on high-rate region [1.8, 4.1 Mbps] - lowered below legend table
     ax_ins = ax.inset_axes([0.55, 0.22, 0.41, 0.35])
@@ -393,9 +429,64 @@ def plot_classification_figures(data: dict, out_dir: Path) -> None:
     ax_foc.set_xlim(0.2, 2.05)
     ax_foc.set_ylim(150.0, 3350.0)
     ax_foc.grid(True)
-    ax_foc.legend(loc="upper right", fontsize=10.5, framealpha=0.92)
+    ax_foc.legend(loc="upper right", fontsize=10.0, framealpha=0.92)
     save_figure(fig_foc, out_dir / "classification_split_partial_rho_focused")
     plt.close(fig_foc)
+
+    # --------------------------------------------------------------------------
+    # Figure 2c: Combined Split Performance (All curves in one single figure)
+    # --------------------------------------------------------------------------
+    fig, ax = plt.subplots(figsize=(6.8, 4.6))
+    
+    combined_styles = [
+        ("All-Local (ALCA)", schemes["All-Local (ALCA)"]["delay"], DARK, "--", "s", r"All-Local (ALCA, $\rho=0$)"),
+        ("Raw Offload (Atomic)", schemes["Raw Offload (Atomic)"]["delay"], VERM, "-.", "^", r"Raw Offload (Atomic, $\chi=1, \rho=1$)"),
+        ("ISCC Split (chi=0.5)", schemes["ISCC Split (chi=0.5)"]["delay"], BLUE, "-", "o", f"ISCC Split ($\\chi=0.50, \\rho=1$, Acc {acc_chi05:.1f}%)"),
+        ("ISCC Split (chi=0.25)", schemes["ISCC Split (chi=0.25)"]["delay"], GREEN, "-", "d", f"ISCC Split ($\\chi=0.25, \\rho=1$, Acc {acc_chi025:.1f}%)"),
+        ("ISCC Split (chi=0.125)", schemes["ISCC Split (chi=0.125)"]["delay"], PURP, "-", "v", f"ISCC Split ($\\chi=0.125, \\rho=1$, Acc {acc_chi0125:.1f}%)"),
+        ("ISCC Split (rho=0.5)", schemes_rho["ISCC Split (rho=0.5)"]["delay"], GOLD, ":", "p", f"ISCC Split ($\\chi=0.25, \\rho=0.5$, Acc {acc_rho05:.1f}%)"),
+        ("ISCC Split (rho=0.25)", schemes_rho["ISCC Split (rho=0.25)"]["delay"], WINE, ":", "X", f"ISCC Split ($\\chi=0.25, \\rho=0.25$, Acc {acc_rho025:.1f}%)"),
+    ]
+
+    for key, delays, c, ls, mk, label in combined_styles:
+        ax.plot(rates, delays, color=c, ls=ls, marker=mk, lw=1.8, ms=6.0, label=label)
+
+    ax.set_xlabel("Uplink Transmission Rate $R_n$ [Mbps]")
+    ax.set_ylabel("End-to-End Latency [ms]")
+    ax.set_xlim(0.1, 4.2)
+    ax.set_ylim(150.0, 3350.0)
+    ax.grid(True)
+    ax.legend(loc="upper right", fontsize=9.2, framealpha=0.92)
+
+    # Inset zoom on high-rate region [1.8, 4.1 Mbps]
+    ax_ins = ax.inset_axes([0.52, 0.20, 0.44, 0.36])
+    for key, delays, c, ls, mk, label in combined_styles:
+        ax_ins.plot(rates, delays, color=c, ls=ls, marker=mk, lw=1.4, ms=4.5)
+    ax_ins.set_xlim(1.8, 4.1)
+    ax_ins.set_ylim(190.0, 520.0)
+    ax_ins.grid(True, alpha=0.3, ls=":")
+    ax_ins.tick_params(labelsize=9.0, length=2.5)
+    ax.indicate_inset_zoom(ax_ins, edgecolor="0.5", lw=0.8, ls="--")
+
+    save_figure(fig, out_dir / "classification_split_combined")
+    plt.close(fig)
+
+    # Combined Focused Rate Range (0.25 to 2.0 Mbps)
+    fig_foc, ax_foc = plt.subplots(figsize=(6.8, 4.6))
+    r_idx = [i for i, r in enumerate(rates) if r <= 2.0]
+    rates_sub = [rates[i] for i in r_idx]
+    for key, delays, c, ls, mk, label in combined_styles:
+        delays_sub = [delays[i] for i in r_idx]
+        ax_foc.plot(rates_sub, delays_sub, color=c, ls=ls, marker=mk, lw=1.8, ms=6.0, label=label)
+    ax_foc.set_xlabel("Uplink Transmission Rate $R_n$ [Mbps]")
+    ax_foc.set_ylabel("End-to-End Latency [ms]")
+    ax_foc.set_xlim(0.2, 2.05)
+    ax_foc.set_ylim(150.0, 3350.0)
+    ax_foc.grid(True)
+    ax_foc.legend(loc="upper right", fontsize=9.2, framealpha=0.92)
+    save_figure(fig_foc, out_dir / "classification_split_combined_focused")
+    plt.close(fig_foc)
+
 
     # --------------------------------------------------------------------------
     # Figure 3: Offload Payload Data Size vs. Feature Retention Ratio (chi)
@@ -460,7 +551,7 @@ def plot_classification_figures(data: dict, out_dir: Path) -> None:
 
     ax.axhline(90.0, color="gray", ls=":", lw=1.2, label=r"Accuracy Floor $\Lambda^{\tt th}=90\%$")
     ax.set_xlabel(r"Normalized Delay $T_n / T^{\tt ref}$")
-    ax.set_ylabel("Top-1 Accuracy [%]")
+    ax.set_ylabel("Classification Accuracy [%]")
     ax.grid(True)
     ax.legend(loc="lower right", fontsize=10.5)
 
